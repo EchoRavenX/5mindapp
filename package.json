@@ -51,7 +51,7 @@
               ],
               "homepage": "https://5mind.com",
               "description": "5Mind Desktop Application.",
-              "maintainer": "eric0d <",
+              "maintainer": "EchoRavenX",
               "section": "net",
               "priority": "optional",
               "icon": "./icon-256.png"
