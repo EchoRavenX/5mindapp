@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>5Mind — Error Report</title>
+  <style>
+    :root {
+      --bg: #1a1a1a;
+      --card: #2d2d2d;
+      --border: #ff6b6b;
+      --text: #fff;
+      --accent: #ff6b6b;
+      --success: #4CAF50;
+      --warn: #ffcc00;
+      --muted: #888;
+    }
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1100px;
+      margin: auto;
+      background: var(--card);
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      border: 1px solid #333;
+    }
+    h1 {
+      color: var(--accent);
+      text-align: center;
+      margin: 0 0 8px;
+      font-size: 2.2em;
+    }
+    .subtitle {
+      text-align: center;
+      color: var(--muted);
+      margin-bottom: 30px;
+      font-size: 1.1em;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 30px;
+    }
+    .info-card {
+      background: #3a3a3a;
+      padding: 14px;
+      border-radius: 10px;
+      border-left: 4px solid var(--accent);
+    }
+    .label {
+      color: var(--muted);
+      font-weight: bold;
+      font-size: 0.9em;
+      text-transform: uppercase;
+    }
+    .value {
+      color: #0f0;
+      word-break: break-all;
+      margin-top: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.95em;
+    }
+    .log-section {
+      margin-top: 30px;
+    }
+    .log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #444;
+    }
+    .log-title {
+      font-size: 1.3em;
+      color: var(--warn);
+    }
+    .btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 0.95em;
+      transition: 0.3s;
+      margin-left: 10px;
+    }
+    .btn:hover { background: #ff8787; }
+    .btn-copy { background: var(--success); }
+    .btn-copy:hover { background: #66bb6a; }
+    .btn-retry {
+      background: #555;
+    }
+    .btn-retry:hover { background: #777; }
+    .log-entry {
+      background: #333;
+      border-left: 4px solid var(--accent);
+      padding: 14px;
+      margin: 12px 0;
+      border-radius: 0 8px 8px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 0.92em;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .timestamp {
+      color: var(--warn);
+      font-weight: bold;
+      font-size: 0.9em;
+    }
+    .msg {
+      color: #ffaaaa;
+      margin: 4px 0;
+    }
+    .stack {
+      color: #ccc;
+      margin-top: 6px;
+      font-size: 0.88em;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      color: var(--muted);
+      font-size: 0.85em;
+    }
+    .auto-refresh {
+      text-align: center;
+      color: #0f0;
+      font-size: 0.9em;
+      margin: 20px 0;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .no-logs {
+      text-align: center;
+      color: var(--muted);
+      font-style: italic;
+      padding: 30px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>5Mind Crashed</h1>
+    <p class="subtitle">Here's everything we know — help us fix it</p>
+
+    <div id="info-grid" class="info-grid"></div>
+
+    <div style="text-align: center; margin: 25px 0;">
+      <button class="btn btn-retry" onclick="location.reload()">Retry App</button>
+      <button class="btn btn-copy" onclick="copyAll()">Copy Report</button>
+    </div>
+
+    <div class="log-section">
+      <div class="log-header">
+        <div class="log-title">Error Log</div>
+        <div class="auto-refresh" id="refresh-status">Auto-refreshing...</div>
+      </div>
+      <div id="logs"></div>
+    </div>
+
+    <div class="footer">
+      Log saved to: <code id="log-path"></code>
+    </div>
+  </div>
+
+  <script>
+    let lastLogCount = 0;
+
+    async function loadLogs() {
+      try {
+        const data = await window.electronAPI.getErrorLogs();
+
+        // Update log path
+        document.getElementById('log-path').textContent = data.logFile || 'N/A';
+
+        // Info grid
+        const grid = document.getElementById('info-grid');
+        grid.innerHTML = `
+          <div class="info-card">
+            <div class="label">App Version</div>
+            <div class="value">${data.appVersion}</div>
+          </div>
+          <div class="info-card">
+            <div class="label">Electron</div>
+            <div class="value">${data.electronVersion}</div>
+          </div>
+          <div class="info-card">
+            <div class="label">Node.js</div>
+            <div class="value">${data.nodeVersion}</div>
+          </div>
+          <div class="info-card">
+            <div class="label">Platform</div>
+            <div class="value">${data.platform} ${data.arch}</div>
+          </div>
+        `;
+
+        // Logs
+        const logsDiv = document.getElementById('logs');
+        const refreshStatus = document.getElementById('refresh-status');
+
+        if (data.logs.length === 0) {
+          logsDiv.innerHTML = '<div class="no-logs">No errors logged yet.</div>';
+          refreshStatus.textContent = 'Waiting for errors...';
+          return;
+        }
+
+        if (data.logs.length !== lastLogCount) {
+          logsDiv.innerHTML = '';
+          data.logs.forEach(log => {
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            div.innerHTML = `
+              <div class="timestamp">[${log.timestamp}]</div>
+              <div class="msg">${escapeHtml(log.msg)}</div>
+              ${log.stack ? `<div class="stack">${escapeHtml(log.stack)}</div>` : ''}
+            `;
+            logsDiv.appendChild(div);
+          });
+          lastLogCount = data.logs.length;
+          refreshStatus.textContent = `Updated just now (${new Date().toLocaleTimeString()})`;
+        } else {
+          refreshStatus.textContent = `Last checked: ${new Date().toLocaleTimeString()}`;
+        }
+      } catch (err) {
+        console.error('Failed to load logs:', err);
+        document.getElementById('logs').innerHTML = '<div class="no-logs">Failed to load logs.</div>';
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    async function copyAll() {
+      try {
+        const data = await window.electronAPI.getErrorLogs();
+        const report = `5MIND CRASH REPORT
+Generated: ${new Date().toISOString()}
+App Version: ${data.appVersion}
+Platform: ${data.platform} ${data.arch}
+Log File: ${data.logFile}
+
+--- ERROR LOG ---
+${data.logs.map(l => `[${l.timestamp}] ${l.msg}\n${l.stack || ''}`).join('\n\n')}
+`;
+        await window.electronAPI.copyToClipboard(report);
+        alert('Full report copied to clipboard!');
+      } catch (err) {
+        alert('Copy failed: ' + err.message);
+      }
+    }
+
+    // Auto-refresh every 4 seconds
+    loadLogs();
+    setInterval(loadLogs, 4000);
+  </script>
+</body>
+</html>s

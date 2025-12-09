@@ -1,0 +1,79 @@
+{
+  "name": "5mind-desktop",
+  "version": "1.1.1",
+  "main": "main.js",
+  "description": "5Mind Desktop Application",
+  "author": "eric0d",
+  "homepage": "https://5mind.com",
+  "scripts": {
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
+  },
+  "dependencies": {
+    "electron-window-state": "^5.0.3"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.8.3",
+    "@electron-forge/maker-deb": "^7.10.2",
+    "@electron-forge/maker-flatpak": "^7.10.2",
+    "@electron-forge/maker-snap": "^7.10.2",
+    "@electron-forge/maker-zip": "^7.10.2",
+    "electron": "39.1.2",
+    "electron-builder": "^26.0.12"
+  },
+  "config": {
+    "forge": {
+      "packagerConfig": {
+        "asar": false,
+        "executableName": "5mind-desktop",
+        "icon": "./icon-256.png",
+        "extraResource": [
+          "./loading.html",
+          "./error.html",
+          "./preload.js",
+          "./icon-256.png"
+        ]
+      },
+      "makers": [
+        {
+          "name": "@electron-forge/maker-deb",
+          "config": {
+            "options": {
+              "bin": "5mind-desktop",
+              "name": "5mind-desktop",
+              "productName": "5mind",
+              "genericName": "Chat & Voice App",
+              "categories": [
+                "Network",
+                "InstantMessaging",
+                "Chat"
+              ],
+              "homepage": "https://5mind.com",
+              "description": "5Mind Desktop Application.",
+              "maintainer": "eric0d <",
+              "section": "net",
+              "priority": "optional",
+              "icon": "./icon-256.png"
+            }
+          }
+        },
+        {
+          "name": "@electron-forge/maker-flatpak",
+          "config": {
+            "id": "com.5mind.desktop",
+            "runtime": "org.freedesktop.Platform",
+            "runtime-version": "25.08",
+            "sdk": "org.freedesktop.Sdk",
+            "command": "5mind-desktop",
+            "finish-args": [
+              "--share=network",
+              "--filesystem=home",
+              "--socket=wayland"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>5Mind – Loading…</title>
+<style>
+  /* -------------------------------------------------
+     Global page style
+     ------------------------------------------------- */
+  html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: linear-gradient(-45deg, #0d0d0d, #1a1a1a, #0d0d0d, #1a1a1a);
+    background-size: 400% 400%;
+    animation: bgShift 12s ease infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+
+  @keyframes bgShift {
+    0%   { background-position: 0%   50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0%   50%; }
+  }
+
+  /* -------------------------------------------------
+     Loader container
+     ------------------------------------------------- */
+  .loader {
+    position: relative;
+    width: 140px;
+    height: 140px;
+  }
+
+  /* -------------------------------------------------
+     Rotating ring
+     ------------------------------------------------- */
+  .ring {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    border: 6px solid transparent;
+    border-top-color: #4fc3f7;
+    border-radius: 50%;
+    animation: spin 1.2s linear infinite;
+  }
+
+  .ring::before {
+    content: '';
+    position: absolute;
+    top: 8px; left: 8px; right: 8px; bottom: 8px;
+    border: 6px solid transparent;
+    border-top-color: #29b6f6;
+    border-radius: 50%;
+    animation: spin 1.8s linear infinite reverse;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* -------------------------------------------------
+     Central logo / text
+     ------------------------------------------------- */
+  .logo {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 28px;
+    font-weight: 600;
+    color: #fff;
+    text-shadow: 0 0 12px rgba(79,195,247,0.6);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
+    50%      { transform: translate(-50%, -50%) scale(1.12); opacity: 0.9; }
+  }
+
+  /* -------------------------------------------------
+     Fade-out when main process signals ready
+     ------------------------------------------------- */
+  .fade-out {
+    animation: fadeOut 0.6s forwards;
+  }
+
+  @keyframes fadeOut {
+    to { opacity: 0; visibility: hidden; }
+  }
+</style>
+</head>
+<body>
+
+<div class="loader" id="loader">
+  <div class="ring"></div>
+  <div class="logo">5Mind</div>
+</div>
+
+<script>
+  // -----------------------------------------------------------------
+  // Notify the main process as soon as the DOM is ready.
+  // The main process should call `loadingWindow.hide()` (or destroy)
+  // after it has created the BrowserWindow.
+  // -----------------------------------------------------------------
+  window.addEventListener('DOMContentLoaded', () => {
+    // Small safety-net: if the API isn’t injected yet, try again soon
+    if (window.electronAPI && typeof window.electronAPI.notifyLoadingComplete === 'function') {
+      window.electronAPI.notifyLoadingComplete();
+    } else {
+      // Fallback – retry a few times
+      let attempts = 0;
+      const maxAttempts = 20;
+      const interval = setInterval(() => {
+        if (window.electronAPI && typeof window.electronAPI.notifyLoadingComplete === 'function') {
+          clearInterval(interval);
+          window.electronAPI.notifyLoadingComplete();
+        } else if (++attempts >= maxAttempts) {
+          clearInterval(interval);
+          console.warn('electronAPI not available – loading screen stays visible');
+        }
+      }, 100);
+    }
+  });
+
+  // -----------------------------------------------------------------
+  // Optional: receive a message from the main process to fade out
+  // (e.g. when the main window is fully shown). If you already hide
+  // the loading window in `main.js`, you can omit this block.
+  // -----------------------------------------------------------------
+  if (window.electronAPI && typeof window.electronAPI.onHideLoading === 'function') {
+    window.electronAPI.onHideLoading(() => {
+      document.getElementById('loader').classList.add('fade-out');
+    });
+  }
+</script>
+
+</body>
+</html>
