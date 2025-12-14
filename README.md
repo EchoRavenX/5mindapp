@@ -4,7 +4,7 @@ A Linux desktop client for the 5mind website.
 
 ## Description
 
-5MindApp is a native Linux client designed to provide a seamless and efficient desktop experience for users of the 5mind website. This application allows users to access 5mind features directly from their Linux environment, offering potential advantages such as improved performance, offline capabilities (if implemented), notifications, or a more integrated user interface compared to browser-based access.
+5MindApp is a native Linux wayland only client designed to provide a seamless and efficient desktop experience for users of the 5mind website. This application allows users to access 5mind features directly from their Linux environment, offering potential advantages such as improved performance, offline capabilities (if implemented), notifications, or a more integrated user interface compared to browser-based access.
 
 ## Features
 
