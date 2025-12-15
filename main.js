@@ -1,4 +1,3 @@
-// main.js
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -55,6 +54,15 @@ function createLoadingWindow() {
   return win;
 }
 
+// ---------- Offline handling ----------
+function setupOfflineHandling(win) {
+  ipcMain.handle('retry-offline', () => {
+    win.loadURL('https://5mind.com/').catch(() => {
+      win.loadFile(path.join(__dirname, 'offline.html')).catch(() => {});
+    });
+  });
+}
+
 // ---------- Create the REAL main window ----------
 function createMainWindow() {
   const mainWindowState = windowStateKeeper({
@@ -84,18 +92,23 @@ function createMainWindow() {
 
   mainWindowState.manage(win);
 
+  // Set up offline handling
+  setupOfflineHandling(win);
+
   // Load main app
   win.loadURL('https://5mind.com/').catch((error) => {
     logError('Failed to load main URL', error.message);
-    win.loadFile(path.join(__dirname, 'error.html')).catch(() => {});
+    win.loadFile(path.join(__dirname, 'offline.html')).catch(() => {});
   });
 
   win.setMenuBarVisibility(false);
 
-  // Fallback on load failure
+  // Fallback on load failure (only for main URL to prevent crash)
   win.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
-    logError(`Page load failed: ${validatedURL}`, `Code: ${errorCode}, Desc: ${errorDescription}`);
-    win.loadFile(path.join(__dirname, 'error.html')).catch(() => {});
+    if (validatedURL === 'https://5mind.com/') {
+      logError(`Page load failed: ${validatedURL}`, `Code: ${errorCode}, Desc: ${errorDescription}`);
+      win.loadFile(path.join(__dirname, 'offline.html')).catch(() => {});
+    }
   });
 
   // Renderer crash
