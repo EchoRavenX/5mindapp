@@ -229,9 +229,29 @@ app.on('ready', () => {
     console.log('Loading screen ready – creating main window');
     mainWindow = createMainWindow();
 
+    // Timeout fallback in case ready-to-show never fires
+    const showTimeout = setTimeout(() => {
+      console.log('Timeout reached - showing window anyway');
+      if (loadingWindow && !loadingWindow.isDestroyed()) {
+        try {
+          loadingWindow.webContents.send('hide-loading');
+        } catch (e) {}
+        loadingWindow.destroy();
+        loadingWindow = null;
+      }
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.show();
+      }
+    }, 10000); // 10 second timeout
+
     mainWindow.once('ready-to-show', () => {
+      clearTimeout(showTimeout);
       // Fade out loading
-      loadingWindow.webContents.send('hide-loading');
+      if (loadingWindow && !loadingWindow.isDestroyed()) {
+        try {
+          loadingWindow.webContents.send('hide-loading');
+        } catch (e) {}
+      }
       // Show main app
       mainWindow.show();
       // Destroy splash
