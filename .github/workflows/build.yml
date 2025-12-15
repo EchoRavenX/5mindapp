@@ -3,7 +3,7 @@ name: Build 5Mind Desktop
 on:
   push:
     tags:
-      - 'v*'  
+      - 'v*'
   workflow_dispatch:
 
 jobs:
@@ -22,10 +22,30 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # ------------------------------
+      # Build AppImage using electron-builder
+      - name: Build AppImage
+        run: |
+          npx electron-builder --linux AppImage
+          APPIMAGE=$(ls dist/*.AppImage 2>/dev/null | head -n1)
+          if [ -f "$APPIMAGE" ]; then
+            chmod +x "$APPIMAGE"
+            echo "AppImage created: $APPIMAGE"
+          else
+            echo "AppImage build failed."
+            exit 1
+          fi
 
-      - name: Build Electron App (Deb + AppImage, skip Flatpak)
-        run: npx electron-forge make --targets deb,appimage
+      # ------------------------------
+      # Build DEB using Electron Forge
+      - name: Build DEB
+        run: |
+          echo "Building 5Mind DEB..."
+          npx electron-forge make
+          echo "Build complete! DEB is in out/make/"
 
+      # ------------------------------
+      # Create GitHub release
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
@@ -35,12 +55,21 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload release artifacts
+      # ------------------------------
+      # Upload artifacts
+      - name: Upload AppImage
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: out/make/*  
-          asset_name: ${{ github.ref_name }}-artifact
+          asset_path: dist/*.AppImage
+          asset_name: 5mindapp.AppImage
           asset_content_type: application/octet-stream
 
+      - name: Upload DEB
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: out/make/*.deb
+          asset_name: 5mindapp.deb
+          asset_content_type: application/vnd.debian.binary-package
 
