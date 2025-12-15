@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const windowStateKeeper = require('electron-window-state');
@@ -12,12 +12,10 @@ if (process.platform === 'linux') {
 // ---------- Global Error Logging ----------
 const errorLogs = [];
 const logPath = path.join(app.getPath('userData'), 'error.log');
-
 function logError(msg, stack = '') {
   const timestamp = new Date().toISOString();
   const entry = { timestamp, msg, stack: stack || '' };
   errorLogs.push(entry);
-
   const logLine = `[${timestamp}] ${msg}\n${stack}\n\n`;
   console.error(logLine);
   fs.appendFileSync(logPath, logLine);
@@ -28,10 +26,54 @@ process.on('uncaughtException', (err) => {
   logError('Uncaught Exception', err.stack);
   showErrorPage();
 });
-
 process.on('unhandledRejection', (reason) => {
   logError('Unhandled Rejection', reason?.stack || String(reason));
   showErrorPage();
+});
+
+// ---------- Permission and Security Hardening ----------
+app.whenReady().then(() => {
+  const ses = session.defaultSession;
+
+  // Restrictive CSP for loaded remote content
+  ses.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self' https://5mind.com https://*.5mind.com; " +
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://5mind.com https://*.5mind.com; " +
+          "style-src 'self' 'unsafe-inline' https://5mind.com https://*.5mind.com; " +
+          "img-src 'self' data: https:; " +
+          "media-src 'self' blob: https:; " +
+          "connect-src 'self' https://5mind.com https://*.5mind.com wss://5mind.com wss://*.5mind.com; " +
+          "object-src 'none'; " +
+          "frame-src 'self' https://5mind.com https://*.5mind.com; " +
+          "base-uri 'self'; " +
+          "form-action 'self' https://5mind.com;"
+        ]
+      }
+    });
+  });
+
+  // Permission handler: Allow required features only from trusted origin
+  ses.setPermissionRequestHandler((webContents, permission, callback, details) => {
+    const url = webContents.getURL();
+    const parsed = new URL(url);
+    const isTrusted = parsed.origin === 'https://5mind.com' || parsed.origin.endsWith('.5mind.com');
+
+    if (!isTrusted) {
+      return callback(false);
+    }
+
+    // Allow media, notifications, fullscreen; deny others by default
+    if (permission === 'media' || permission === 'notifications' || permission === 'fullscreen') {
+      return callback(true);
+    }
+
+    // Optionally allow others if needed (e.g., geolocation, pointerLock); currently deny
+    return callback(false);
+  });
 });
 
 // ---------- Create the LOADING splash window ----------
@@ -48,6 +90,10 @@ function createLoadingWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      experimentalFeatures: false,
+      webviewTag: false,
     },
   });
   win.loadFile(path.join(__dirname, 'loading.html'));
@@ -69,10 +115,8 @@ function createMainWindow() {
     defaultWidth: 1200,
     defaultHeight: 800,
   });
-
   const iconPath = path.join(__dirname, 'icon-256.png');
   const iconOptions = fs.existsSync(iconPath) ? { icon: iconPath } : {};
-
   const win = new BrowserWindow({
     x: mainWindowState.x,
     y: mainWindowState.y,
@@ -86,11 +130,31 @@ function createMainWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      experimentalFeatures: false,
+      webviewTag: false,
     },
     ...(process.platform === 'linux' ? { type: 'window', decorations: true } : {}),
   });
-
   mainWindowState.manage(win);
+
+  // Prevent navigation to untrusted origins
+  win.webContents.on('will-navigate', (event, url) => {
+    const parsedUrl = new URL(url);
+    if (parsedUrl.origin !== 'https://5mind.com' && !parsedUrl.origin.endsWith('.5mind.com')) {
+      event.preventDefault();
+    }
+  });
+
+  // Prevent untrusted new windows/popups
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    const parsedUrl = new URL(url);
+    if (parsedUrl.origin !== 'https://5mind.com' && !parsedUrl.origin.endsWith('.5mind.com')) {
+      return { action: 'deny' };
+    }
+    return { action: 'allow' }; // Allow if trusted; adjust to 'deny' if popups are not needed
+  });
 
   // Set up offline handling
   setupOfflineHandling(win);
@@ -100,12 +164,11 @@ function createMainWindow() {
     logError('Failed to load main URL', error.message);
     win.loadFile(path.join(__dirname, 'offline.html')).catch(() => {});
   });
-
   win.setMenuBarVisibility(false);
 
-  // Fallback on load failure (only for main URL to prevent crash)
+  // Fallback on load failure
   win.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
-    if (validatedURL === 'https://5mind.com/') {
+    if (validatedURL.startsWith('https://5mind.com')) {
       logError(`Page load failed: ${validatedURL}`, `Code: ${errorCode}, Desc: ${errorDescription}`);
       win.loadFile(path.join(__dirname, 'offline.html')).catch(() => {});
     }
@@ -121,6 +184,7 @@ function createMainWindow() {
 }
 
 // ---------- Show error.html ----------
+let mainWindow = null; // Declare globally for showErrorPage
 function showErrorPage() {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.loadFile(path.join(__dirname, 'error.html')).catch(() => {});
@@ -143,23 +207,17 @@ ipcMain.handle('get-error-logs', () => {
 
 // ---------- App lifecycle ----------
 let loadingWindow = null;
-let mainWindow = null;
-
 app.on('ready', () => {
   console.log('Starting Electron v' + process.versions.electron + ' with Node.js v' + process.version);
   loadingWindow = createLoadingWindow();
-
   ipcMain.on('loading-complete', () => {
     console.log('Loading screen ready – creating main window');
     mainWindow = createMainWindow();
-
     mainWindow.once('ready-to-show', () => {
       // Fade out loading
       loadingWindow.webContents.send('hide-loading');
-
       // Show main app
       mainWindow.show();
-
       // Destroy splash
       setTimeout(() => {
         if (loadingWindow && !loadingWindow.isDestroyed()) {
