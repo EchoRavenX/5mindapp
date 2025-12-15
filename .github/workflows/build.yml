@@ -23,8 +23,10 @@ jobs:
         run: npm install
 
       # ------------------------------
-      # Build AppImage using electron-builder
+      # Build AppImage using electron-builder (publish using GH_TOKEN)
       - name: Build AppImage
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           npx electron-builder --linux AppImage
           APPIMAGE=$(ls dist/*.AppImage 2>/dev/null | head -n1)
@@ -72,4 +74,3 @@ jobs:
           asset_path: out/make/*.deb
           asset_name: 5mindapp.deb
           asset_content_type: application/vnd.debian.binary-package
-
