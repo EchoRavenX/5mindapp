@@ -3,8 +3,8 @@ name: Build 5MindApp
 on:
   push:
     tags:
-      - 'v*'  
-  workflow_dispatch: 
+      - 'v*'  # triggers on version tags like v1.0.0
+  workflow_dispatch: # allows manual trigger
 
 jobs:
   build:
@@ -22,11 +22,35 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # Skip npm test to avoid missing script errors
+
       - name: Build AppImage
         run: ./package.sh
 
-      - name: Upload release artifact
-        uses: actions/upload-artifact@v3
+      - name: Build Debian package
+        run: ./packagedeb.sh
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
         with:
-          name: 5mindapp-appimage
-          path: dist/*.AppImage
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+
+      - name: Upload AppImage
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/*.AppImage
+          asset_name: 5mindapp.AppImage
+          asset_content_type: application/octet-stream
+
+      - name: Upload Debian package
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/*.deb
+          asset_name: 5mindapp.deb
+          asset_content_type: application/vnd.debian.binary-package
