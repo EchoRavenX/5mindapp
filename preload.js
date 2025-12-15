@@ -1,4 +1,3 @@
-// preload.js
 const { contextBridge, ipcRenderer } = require('electron');
 
 /**
@@ -26,5 +25,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   /**
    * Copy text to clipboard (for error.html "Copy All" button)
    */
-  copyToClipboard: (text) => navigator.clipboard.writeText(text)
+  copyToClipboard: (text) => navigator.clipboard.writeText(text),
+
+  /**
+   * Retry loading main app after offline
+   */
+  retryOffline: () => ipcRenderer.invoke('retry-offline')
 });
