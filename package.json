@@ -8,7 +8,9 @@
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
-    "make": "electron-forge make"
+    "make": "electron-forge make",
+    "make-deb": "electron-forge make --platform linux --arch x64 --targets=@electron-forge/maker-deb",
+    "make-flatpak": "electron-forge make --platform linux --arch x64 --targets=@electron-forge/maker-flatpak"
   },
   "dependencies": {
     "electron-window-state": "^5.0.3"
@@ -76,3 +78,4 @@
     }
   }
 }
+
