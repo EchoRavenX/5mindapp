@@ -1,12 +1,12 @@
 {
   "app-id": "com.fivemind.desktop",
   "runtime": "org.freedesktop.Platform",
-  "runtime-version": "24.08",
+  "runtime-version": "25.08", 
   "sdk": "org.freedesktop.Sdk",
   "base": "org.electronjs.Electron2.BaseApp",
-  "base-version": "24.08",
+  "base-version": "25.08", 
   "sdk-extensions": [
-    "org.freedesktop.Sdk.Extension.node20"
+    "org.freedesktop.Sdk.Extension.node22" 
   ],
   "command": "start-5mind-desktop.sh",
   "finish-args": [
@@ -27,7 +27,7 @@
       "name": "5mind-desktop",
       "buildsystem": "simple",
       "build-options": {
-        "append-path": "/usr/lib/sdk/node20/bin",
+        "append-path": "/usr/lib/sdk/node22/bin", 
         "build-args": [
           "--share=network"
         ],
