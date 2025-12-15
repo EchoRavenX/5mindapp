@@ -3,7 +3,7 @@ name: Build 5Mind Desktop
 on:
   push:
     tags:
-      - 'v*'  # triggers on tags like v1.1.3
+      - 'v*'  
   workflow_dispatch:
 
 jobs:
@@ -22,10 +22,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # Skip tests entirely
 
-      - name: Build Electron App (AppImage + deb)
-        run: npm run make
+      - name: Build Electron App (Deb + AppImage, skip Flatpak)
+        run: npx electron-forge make --targets deb,appimage
 
       - name: Create GitHub Release
         id: create_release
@@ -40,7 +39,8 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: out/make/*  # electron-forge output folder
+          asset_path: out/make/*  
           asset_name: ${{ github.ref_name }}-artifact
           asset_content_type: application/octet-stream
+
 
