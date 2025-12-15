@@ -23,7 +23,7 @@ jobs:
         run: npm install
 
       # ------------------------------
-      # Build AppImage using electron-builder (publish using GH_TOKEN)
+      # Build AppImage using electron-builder
       - name: Build AppImage
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -43,7 +43,7 @@ jobs:
       - name: Build DEB
         run: |
           echo "Building 5Mind DEB..."
-          npx electron-forge make
+          npx electron-forge make --platform linux --arch x64 --targets=@electron-forge/maker-deb
           echo "Build complete! DEB is in out/make/"
 
       # ------------------------------
@@ -56,6 +56,7 @@ jobs:
           release_name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false
+          token: ${{ secrets.GH_TOKEN }}
 
       # ------------------------------
       # Upload artifacts
