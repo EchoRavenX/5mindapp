@@ -9,8 +9,7 @@
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
-    "make-deb": "electron-forge make --platform linux --arch x64 --targets=@electron-forge/maker-deb",
-    "make-flatpak": "electron-forge make --platform linux --arch x64 --targets=@electron-forge/maker-flatpak"
+    "make-deb": "electron-forge make --platform linux --arch x64 --targets=@electron-forge/maker-deb"
   },
   "dependencies": {
     "electron-window-state": "^5.0.3"
@@ -18,7 +17,6 @@
   "devDependencies": {
     "@electron-forge/cli": "^7.8.3",
     "@electron-forge/maker-deb": "^7.10.2",
-    "@electron-forge/maker-flatpak": "^7.10.2",
     "@electron-forge/maker-zip": "^7.10.2",
     "electron": "39.1.2",
     "electron-builder": "^26.0.12"
@@ -58,24 +56,9 @@
               "icon": "./icon-256.png"
             }
           }
-        },
-        {
-          "name": "@electron-forge/maker-flatpak",
-          "config": {
-            "id": "com.5mind.desktop",
-            "runtime": "org.freedesktop.Platform",
-            "runtime-version": "25.08",
-            "sdk": "org.freedesktop.Sdk",
-            "command": "5mind-desktop",
-            "finish-args": [
-              "--share=network",
-              "--filesystem=home",
-              "--socket=wayland"
-            ]
-          }
         }
+        /* Flatpak maker temporarily removed to allow CI DEB builds */
       ]
     }
   }
 }
-
