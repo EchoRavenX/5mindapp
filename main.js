@@ -12,6 +12,7 @@ if (process.platform === 'linux') {
 // ---------- Global Error Logging ----------
 const errorLogs = [];
 const logPath = path.join(app.getPath('userData'), 'error.log');
+
 function logError(msg, stack = '') {
   const timestamp = new Date().toISOString();
   const entry = { timestamp, msg, stack: stack || '' };
@@ -26,6 +27,7 @@ process.on('uncaughtException', (err) => {
   logError('Uncaught Exception', err.stack);
   showErrorPage();
 });
+
 process.on('unhandledRejection', (reason) => {
   logError('Unhandled Rejection', reason?.stack || String(reason));
   showErrorPage();
@@ -56,22 +58,28 @@ app.whenReady().then(() => {
     });
   });
 
+  // Set custom User-Agent for the 5mind desktop client
+  const customUserAgent = `5mind/${app.getVersion()} Electron/${process.versions.electron} Chrome/${process.versions.chrome}`;
+  ses.setUserAgent(customUserAgent);
+
+  // Enforce User-Agent header explicitly as a reliable fallback
+  ses.webRequest.onBeforeSendHeaders((details, callback) => {
+    details.requestHeaders['User-Agent'] = customUserAgent;
+    callback({ requestHeaders: details.requestHeaders });
+  });
+
   // Permission handler: Allow required features only from trusted origin
   ses.setPermissionRequestHandler((webContents, permission, callback, details) => {
     const url = webContents.getURL();
     const parsed = new URL(url);
     const isTrusted = parsed.origin === 'https://5mind.com' || parsed.origin.endsWith('.5mind.com');
-
     if (!isTrusted) {
       return callback(false);
     }
-
     // Allow media, notifications, fullscreen; deny others by default
     if (permission === 'media' || permission === 'notifications' || permission === 'fullscreen') {
       return callback(true);
     }
-
-    // Optionally allow others if needed (e.g., geolocation, pointerLock); currently deny
     return callback(false);
   });
 });
@@ -115,8 +123,10 @@ function createMainWindow() {
     defaultWidth: 1200,
     defaultHeight: 800,
   });
+
   const iconPath = path.join(__dirname, 'icon-256.png');
   const iconOptions = fs.existsSync(iconPath) ? { icon: iconPath } : {};
+
   const win = new BrowserWindow({
     x: mainWindowState.x,
     y: mainWindowState.y,
@@ -137,6 +147,7 @@ function createMainWindow() {
     },
     ...(process.platform === 'linux' ? { type: 'window', decorations: true } : {}),
   });
+
   mainWindowState.manage(win);
 
   // Prevent navigation to untrusted origins
@@ -153,7 +164,7 @@ function createMainWindow() {
     if (parsedUrl.origin !== 'https://5mind.com' && !parsedUrl.origin.endsWith('.5mind.com')) {
       return { action: 'deny' };
     }
-    return { action: 'allow' }; // Allow if trusted; adjust to 'deny' if popups are not needed
+    return { action: 'allow' };
   });
 
   // Set up offline handling
@@ -164,6 +175,7 @@ function createMainWindow() {
     logError('Failed to load main URL', error.message);
     win.loadFile(path.join(__dirname, 'offline.html')).catch(() => {});
   });
+
   win.setMenuBarVisibility(false);
 
   // Fallback on load failure
@@ -185,6 +197,7 @@ function createMainWindow() {
 
 // ---------- Show error.html ----------
 let mainWindow = null; // Declare globally for showErrorPage
+
 function showErrorPage() {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.loadFile(path.join(__dirname, 'error.html')).catch(() => {});
@@ -207,12 +220,15 @@ ipcMain.handle('get-error-logs', () => {
 
 // ---------- App lifecycle ----------
 let loadingWindow = null;
+
 app.on('ready', () => {
   console.log('Starting Electron v' + process.versions.electron + ' with Node.js v' + process.version);
   loadingWindow = createLoadingWindow();
+
   ipcMain.on('loading-complete', () => {
     console.log('Loading screen ready – creating main window');
     mainWindow = createMainWindow();
+
     mainWindow.once('ready-to-show', () => {
       // Fade out loading
       loadingWindow.webContents.send('hide-loading');
