@@ -1,0 +1,55 @@
+{
+  "app-id": "com.fivemind.desktop",
+  "runtime": "org.freedesktop.Platform",
+  "runtime-version": "24.08",
+  "sdk": "org.freedesktop.Sdk",
+  "base": "org.electronjs.Electron2.BaseApp",
+  "base-version": "24.08",
+  "sdk-extensions": [
+    "org.freedesktop.Sdk.Extension.node20"
+  ],
+  "command": "start-5mind-desktop.sh",
+  "finish-args": [
+    "--share=network",
+    "--socket=pulseaudio",
+    "--socket=wayland",
+    "--socket=fallback-x11",
+    "--share=ipc",
+    "--device=dri",
+    "--socket=session-bus",
+    "--filesystem=xdg-documents",
+    "--filesystem=xdg-download",
+    "--persist=.5mind-desktop",
+    "--env=ELECTRON_ENABLE_LOGGING=1"
+  ],
+  "modules": [
+    {
+      "name": "5mind-desktop",
+      "buildsystem": "simple",
+      "build-options": {
+        "append-path": "/usr/lib/sdk/node20/bin",
+        "build-args": [
+          "--share=network"
+        ],
+        "env": {
+          "NPM_CONFIG_LOGLEVEL": "info"
+        }
+      },
+      "build-commands": [
+        "npm install",
+        "npm run package",
+        "cp -r out/5mind-desktop-linux-x64/* /app/",
+        "chmod +x /app/5mind-desktop",
+        "cat > /app/bin/start-5mind-desktop.sh <<'EOF'\n#!/bin/sh\nexec /app/5mind-desktop --no-sandbox \"$@\"\nEOF",
+        "chmod +x /app/bin/start-5mind-desktop.sh"
+      ],
+      "sources":  [
+        {
+          "type": "git",
+          "url": "https://github.com/EchoRavenX/5mindapp.git",
+          "branch": "main"
+        }
+      ]
+    }
+  ]
+}
