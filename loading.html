@@ -101,11 +101,6 @@
 </div>
 
 <script>
-  // -----------------------------------------------------------------
-  // Notify the main process as soon as the DOM is ready.
-  // The main process should call `loadingWindow.hide()` (or destroy)
-  // after it has created the BrowserWindow.
-  // -----------------------------------------------------------------
   window.addEventListener('DOMContentLoaded', () => {
     // Small safety-net: if the API isn’t injected yet, try again soon
     if (window.electronAPI && typeof window.electronAPI.notifyLoadingComplete === 'function') {
@@ -125,12 +120,6 @@
       }, 100);
     }
   });
-
-  // -----------------------------------------------------------------
-  // Optional: receive a message from the main process to fade out
-  // (e.g. when the main window is fully shown). If you already hide
-  // the loading window in `main.js`, you can omit this block.
-  // -----------------------------------------------------------------
   if (window.electronAPI && typeof window.electronAPI.onHideLoading === 'function') {
     window.electronAPI.onHideLoading(() => {
       document.getElementById('loader').classList.add('fade-out');
