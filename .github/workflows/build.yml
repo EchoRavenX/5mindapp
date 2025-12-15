@@ -1,10 +1,10 @@
-name: Build 5MindApp
+name: Build 5Mind Desktop
 
 on:
   push:
     tags:
-      - 'v*'  # triggers on version tags like v1.0.0
-  workflow_dispatch: # allows manual trigger
+      - 'v*'  # triggers on tags like v1.1.3
+  workflow_dispatch:
 
 jobs:
   build:
@@ -22,13 +22,10 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # Skip npm test to avoid missing script errors
+      # Skip tests entirely
 
-      - name: Build AppImage
-        run: ./package.sh
-
-      - name: Build Debian package
-        run: ./packagedeb.sh
+      - name: Build Electron App (AppImage + deb)
+        run: npm run make
 
       - name: Create GitHub Release
         id: create_release
@@ -39,18 +36,11 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload AppImage
+      - name: Upload release artifacts
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/*.AppImage
-          asset_name: 5mindapp.AppImage
+          asset_path: out/make/*  # electron-forge output folder
+          asset_name: ${{ github.ref_name }}-artifact
           asset_content_type: application/octet-stream
 
-      - name: Upload Debian package
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/*.deb
-          asset_name: 5mindapp.deb
-          asset_content_type: application/vnd.debian.binary-package
