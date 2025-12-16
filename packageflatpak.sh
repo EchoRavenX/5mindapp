@@ -1,0 +1,1 @@
+ flatpak-builder --user --install --force-clean build-dir flatpak/com.5mind.desktop.json
