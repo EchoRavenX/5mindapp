@@ -22,4 +22,9 @@ git clone https://github.com/EchoRavenX/5mindapp.git
 # Navigate to the project directory
 cd 5mindapp
 and run ./package.sh for  AppImage.
-currently the flatpak one doesnt work but the deb one work
+and ./packagedeb.sh for deb packages
+and for flatpaks builds
+you need to install
+flatpak install flathub org.freedesktop.Sdk.Extension.node22/x86_64/25.08
+flatpak install flathub org.electronjs.Electron2.BaseApp//25.08
+and run ./packageflatpak.sh
