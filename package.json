@@ -18,6 +18,7 @@
     "@electron-forge/cli": "^7.8.3",
     "@electron-forge/maker-deb": "^7.10.2",
     "@electron-forge/maker-zip": "^7.10.2",
+    "@electron-forge/maker-flatpak": "^7.10.2",
     "electron": "39.1.2",
     "electron-builder": "^26.0.12"
   },
@@ -56,8 +57,24 @@
               "icon": "./icon-256.png"
             }
           }
+        },
+        {
+          "name": "@electron-forge/maker-flatpak",
+          "config": {
+            "id": "com.5mind.desktop",
+            "runtime": "org.freedesktop.Platform",
+            "runtime-version": "25.08",
+            "sdk": "org.freedesktop.Sdk",
+            "command": "5mind-desktop",
+            "finish-args": [
+              "--share=network",
+              "--filesystem=home",
+              "--socket=wayland"
+            ]
+          }
         }
       ]
     }
   }
 }
+
