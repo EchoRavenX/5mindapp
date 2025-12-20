@@ -1,12 +1,12 @@
 {
   "app-id": "com.fivemind.desktop",
   "runtime": "org.freedesktop.Platform",
-  "runtime-version": "25.08", 
+  "runtime-version": "25.08",
   "sdk": "org.freedesktop.Sdk",
   "base": "org.electronjs.Electron2.BaseApp",
-  "base-version": "25.08", 
+  "base-version": "25.08",
   "sdk-extensions": [
-    "org.freedesktop.Sdk.Extension.node22" 
+    "org.freedesktop.Sdk.Extension.node22"
   ],
   "command": "start-5mind-desktop.sh",
   "finish-args": [
@@ -27,7 +27,7 @@
       "name": "5mind-desktop",
       "buildsystem": "simple",
       "build-options": {
-        "append-path": "/usr/lib/sdk/node22/bin", 
+        "append-path": "/usr/lib/sdk/node22/bin",
         "build-args": [
           "--share=network"
         ],
@@ -40,10 +40,13 @@
         "npm run package",
         "cp -r out/5mind-desktop-linux-x64/* /app/",
         "chmod +x /app/5mind-desktop",
+        "install -Dm644 icon-256.png /app/share/icons/hicolor/256x256/apps/com.fivemind.desktop.png",
+        "mkdir -p /app/share/applications",
+        "cat > /app/share/applications/com.fivemind.desktop.desktop <<EOF\n[Desktop Entry]\nName=5Mind Desktop\nComment=Linux client for the 5Mind platform\nExec=start-5mind-desktop.sh\nIcon=com.fivemind.desktop\nType=Application\nCategories=Network;Chat;\nStartupWMClass=5mind-desktop\nEOF",
         "cat > /app/bin/start-5mind-desktop.sh <<'EOF'\n#!/bin/sh\nexec /app/5mind-desktop --no-sandbox \"$@\"\nEOF",
         "chmod +x /app/bin/start-5mind-desktop.sh"
       ],
-      "sources":  [
+      "sources": [
         {
           "type": "git",
           "url": "https://github.com/EchoRavenX/5mindapp.git",
