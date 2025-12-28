@@ -8,41 +8,47 @@ on:
 
 permissions:
   contents: write  
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'  
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci  
 
-      
-      - name: Build AppImage
+      - name: Build AppImage (electron-builder)
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          npx electron-builder --linux appimage
-          ls dist/*.AppImage
-      - name: Build DEB
+          npx electron-builder --linux appimage --x64
+          echo "AppImage files:"
+          ls -la dist/*.AppImage
+
+      - name: Build DEB (Electron Forge)
         run: |
           npx electron-forge make --platform linux --arch x64 --targets @electron-forge/maker-deb
-          ls out/make/*.deb
-      - name: Release with Assets
+          echo "DEB files:"
+          ls -la out/make/*.deb
+
+      - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_name }}
+          name: 5Mind Desktop ${{ github.ref_name }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: true
           files: |
             dist/*.AppImage
             out/make/*.deb
-          name: Release ${{ github.ref_name }}
-          tag_name: ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-          generate_release_notes: true  
