@@ -27,23 +27,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Linux Packages (AppImage + DEB + Pacman)
+      # Build AppImage + DEB only (pacman removed to avoid extra complexity)
+      - name: Build Linux Packages (AppImage + DEB)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          npx electron-builder --linux appimage deb pacman --x64
+          npx electron-builder --linux appimage deb --x64
           echo "=== All built files in dist/ ==="
           ls -la dist/
 
+      # Debug: List artifacts
       - name: List built artifacts
         run: |
           echo "AppImage files:"
           ls -la dist/*.AppImage || echo "No AppImage found"
           echo "DEB files:"
           ls -la dist/*.deb || echo "No DEB found"
-          echo "Pacman files:"
-          ls -la dist/*.pacman || echo "No Pacman found"
 
+      # Create release + upload assets
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2
         with:
@@ -56,4 +57,3 @@ jobs:
           files: |
             dist/*.AppImage
             dist/*.deb
-            dist/*.pacman
