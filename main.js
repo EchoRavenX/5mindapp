@@ -34,7 +34,6 @@ process.on('unhandledRejection', (reason) => {
 // ---------- Permission and Security Hardening ----------
 app.whenReady().then(() => {
   const ses = session.defaultSession;
-  // Restrictive CSP for loaded remote content
   ses.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
@@ -54,28 +53,32 @@ app.whenReady().then(() => {
       }
     });
   });
-  // Set custom User-Agent for the 5mind desktop client
   const customUserAgent = `5mind/${app.getVersion()} Electron/${process.versions.electron} Chrome/${process.versions.chrome}`;
   ses.setUserAgent(customUserAgent);
-  // Enforce User-Agent header explicitly as a reliable fallback
   ses.webRequest.onBeforeSendHeaders((details, callback) => {
     details.requestHeaders['User-Agent'] = customUserAgent;
     callback({ requestHeaders: details.requestHeaders });
   });
-  // Permission handler: Allow required features only from trusted origin
   ses.setPermissionRequestHandler((webContents, permission, callback, details) => {
     const url = webContents.getURL();
     const parsed = new URL(url);
     const isTrusted = parsed.origin === 'https://5mind.com' || parsed.origin.endsWith('.5mind.com');
-    if (!isTrusted) {
-      return callback(false);
-    }
-    // Allow media, notifications, fullscreen; deny others by default
+    if (!isTrusted) return callback(false);
     if (permission === 'media' || permission === 'notifications' || permission === 'fullscreen') {
       return callback(true);
     }
     return callback(false);
   });
+});
+
+// ---------- Offline handling (registered ONCE) ----------
+ipcMain.handle('retry-offline', async (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win) {
+    await win.loadURL('https://5mind.com/').catch(() => {
+      win.loadFile(path.join(__dirname, 'offline.html')).catch(() => {});
+    });
+  }
 });
 
 // ---------- Create the LOADING splash window ----------
@@ -100,15 +103,6 @@ function createLoadingWindow() {
   });
   win.loadFile(path.join(__dirname, 'loading.html'));
   return win;
-}
-
-// ---------- Offline handling ----------
-function setupOfflineHandling(win) {
-  ipcMain.handle('retry-offline', () => {
-    win.loadURL('https://5mind.com/').catch(() => {
-      win.loadFile(path.join(__dirname, 'offline.html')).catch(() => {});
-    });
-  });
 }
 
 // ---------- Create the REAL main window ----------
@@ -140,14 +134,14 @@ function createMainWindow() {
     ...(process.platform === 'linux' ? { type: 'window', decorations: true } : {}),
   });
   mainWindowState.manage(win);
-  // Prevent navigation to untrusted origins
+
   win.webContents.on('will-navigate', (event, url) => {
     const parsedUrl = new URL(url);
     if (parsedUrl.origin !== 'https://5mind.com' && !parsedUrl.origin.endsWith('.5mind.com')) {
       event.preventDefault();
     }
   });
-  // Prevent untrusted new windows/popups
+
   win.webContents.setWindowOpenHandler(({ url }) => {
     const parsedUrl = new URL(url);
     if (parsedUrl.origin !== 'https://5mind.com' && !parsedUrl.origin.endsWith('.5mind.com')) {
@@ -155,26 +149,26 @@ function createMainWindow() {
     }
     return { action: 'allow' };
   });
-  // Set up offline handling
-  setupOfflineHandling(win);
-  // Load main app
+
   win.loadURL('https://5mind.com/').catch((error) => {
     logError('Failed to load main URL', error.message);
     win.loadFile(path.join(__dirname, 'offline.html')).catch(() => {});
   });
+
   win.setMenuBarVisibility(false);
-  // Fallback on load failure
+
   win.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
     if (validatedURL.startsWith('https://5mind.com')) {
       logError(`Page load failed: ${validatedURL}`, `Code: ${errorCode}, Desc: ${errorDescription}`);
       win.loadFile(path.join(__dirname, 'offline.html')).catch(() => {});
     }
   });
-  // Renderer crash
+
   win.webContents.on('crashed', () => {
     logError('Renderer process crashed');
     showErrorPage();
   });
+
   return win;
 }
 
@@ -238,9 +232,11 @@ app.on('ready', () => {
     });
   });
 });
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
+
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     loadingWindow = createLoadingWindow();
