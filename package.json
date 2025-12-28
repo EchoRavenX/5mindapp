@@ -45,7 +45,8 @@
       "target": [
         "appimage",
         "deb",
-        "pacman"
+        "pacman",
+        "rpm"
       ],
       "category": "Network;InstantMessaging;Chat",
       "description": "5Mind Desktop Application.",
