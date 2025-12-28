@@ -30,11 +30,11 @@ jobs:
       - name: Install bsdtar for Pacman target
         run: sudo apt-get update && sudo apt-get install -y libarchive-tools
 
-      - name: Build Linux Packages (AppImage + DEB + Pacman)
+      - name: Build Linux Packages (AppImage + DEB + Pacman + RPM)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          npx electron-builder --linux appimage deb pacman --x64
+          npx electron-builder --linux appimage deb pacman rpm --x64
           echo "=== All built files in dist/ ==="
           ls -la dist/
 
@@ -46,6 +46,8 @@ jobs:
           ls -la dist/*.deb || true
           echo "Pacman:"
           ls -la dist/*.pacman || true
+          echo "RPM:"
+          ls -la dist/*.rpm || true
 
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2
@@ -60,3 +62,4 @@ jobs:
             dist/*.AppImage
             dist/*.deb
             dist/*.pacman
+            dist/*.rpm
