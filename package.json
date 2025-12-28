@@ -3,13 +3,17 @@
   "version": "1.1.4",
   "main": "main.js",
   "description": "5Mind Desktop Application",
-  "author": "EchoRavenX",
+  "author": {
+    "name": "EchoRavenX",
+    "email": "echo@ravenx.com"   
+  },
   "homepage": "https://5mind.com",
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
-    "make-deb": "electron-forge make --platform linux --arch x64 --targets=@electron-forge/maker-deb"
+    "make-deb": "electron-forge make --platform linux --arch x64 --targets=@electron-forge/maker-deb",
+    "build:linux": "electron-builder --linux appimage deb --x64"
   },
   "dependencies": {
     "electron-window-state": "^5.0.3"
@@ -51,7 +55,7 @@
               ],
               "homepage": "https://5mind.com",
               "description": "5Mind Desktop Application.",
-              "maintainer": "EchoRavenX",
+              "maintainer": "EchoRavenX <echo@ravenx.com>",
               "section": "net",
               "priority": "optional",
               "icon": "./icon-256.png"
@@ -75,6 +79,31 @@
         }
       ]
     }
+  },
+  "build": {
+    "appId": "com.5mind.desktop",
+    "productName": "5Mind Desktop",
+    "executableName": "5mind-desktop",
+    "asar": false,
+    "extraResources": [
+      "./loading.html",
+      "./error.html",
+      "./preload.js",
+      "./icon-256.png"
+    ],
+    "linux": {
+      "target": [
+        "appimage",
+        "deb"
+      ],
+      "category": "Network;InstantMessaging;Chat",
+      "description": "5Mind Desktop Application.",
+      "icon": "./icon-256.png",
+      "maintainer": "EchoRavenX <echo@ravenx.com>"
+    },
+    "fileAssociations": [],
+    "directories": {
+      "output": "dist"
+    }
   }
 }
-
