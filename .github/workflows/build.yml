@@ -53,7 +53,17 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: 5Mind Desktop ${{ github.ref_name }}
+          name: 5Mind Desktop ${{ github.ref_name }}  
+          body: |
+            ### 5Mind Desktop ${{ github.ref_name }}
+
+            Latest Linux builds:
+            - AppImage (portable)
+            - DEB (Ubuntu/Debian)
+            - Pacman (Arch/Manjaro)
+            - RPM (Fedora/openSUSE)
+
+            Auto-generated changelog below.
           generate_release_notes: true
           draft: false
           prerelease: false
