@@ -5,7 +5,7 @@
   "description": "5Mind Desktop Application",
   "author": {
     "name": "EchoRavenX",
-    "email": "echo@ravenx.com"   
+    "email": "echo@ravenx.com"
   },
   "homepage": "https://5mind.com",
   "scripts": {
@@ -13,7 +13,7 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "make-deb": "electron-forge make --platform linux --arch x64 --targets=@electron-forge/maker-deb",
-    "build:linux": "electron-builder --linux appimage deb --x64"
+    "build:linux": "electron-builder --linux appimage deb pacman --x64"
   },
   "dependencies": {
     "electron-window-state": "^5.0.3"
@@ -94,7 +94,8 @@
     "linux": {
       "target": [
         "appimage",
-        "deb"
+        "deb",
+        "pacman"
       ],
       "category": "Network;InstantMessaging;Chat",
       "description": "5Mind Desktop Application.",
