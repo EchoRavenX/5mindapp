@@ -54,7 +54,7 @@ jobs:
           name: 5Mind Desktop ${{ github.ref_name }}
           generate_release_notes: true
           draft: false
-          prerelease: false
+          prerelease: true
           fail_on_unmatched_files: true
           files: |
             dist/*.AppImage
