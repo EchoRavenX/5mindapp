@@ -29,7 +29,7 @@
   "config": {
     "forge": {
       "packagerConfig": {
-        "asar": false,
+        "asar": true,
         "executableName": "5mind-desktop",
         "icon": "./icon-256.png",
         "extraResource": [
