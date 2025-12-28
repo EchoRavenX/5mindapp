@@ -101,27 +101,40 @@
 </div>
 
 <script>
+  console.log('loading.html script running');
+
   window.addEventListener('DOMContentLoaded', () => {
-    // Small safety-net: if the API isn’t injected yet, try again soon
+    console.log('DOMContentLoaded fired');
+    console.log('electronAPI available:', !!window.electronAPI);
+
     if (window.electronAPI && typeof window.electronAPI.notifyLoadingComplete === 'function') {
+      console.log('Sending loading-complete');
       window.electronAPI.notifyLoadingComplete();
     } else {
-      // Fallback – retry a few times
-      let attempts = 0;
-      const maxAttempts = 20;
-      const interval = setInterval(() => {
-        if (window.electronAPI && typeof window.electronAPI.notifyLoadingComplete === 'function') {
-          clearInterval(interval);
-          window.electronAPI.notifyLoadingComplete();
-        } else if (++attempts >= maxAttempts) {
-          clearInterval(interval);
-          console.warn('electronAPI not available – loading screen stays visible');
-        }
-      }, 100);
+      console.warn('electronAPI missing on DOM ready');
     }
   });
-  if (window.electronAPI && typeof window.electronAPI.onHideLoading === 'function') {
+
+  // Fallback retry
+  let attempts = 0;
+  const maxAttempts = 50; // Increased for safety
+  const interval = setInterval(() => {
+    attempts++;
+    console.log(`Retry attempt ${attempts}: electronAPI?`, !!window.electronAPI);
+    if (window.electronAPI && typeof window.electronAPI.notifyLoadingComplete === 'function') {
+      clearInterval(interval);
+      console.log('Fallback success — sending loading-complete');
+      window.electronAPI.notifyLoadingComplete();
+    } else if (attempts >= maxAttempts) {
+      clearInterval(interval);
+      console.error('electronAPI never appeared — stuck forever');
+    }
+  }, 200); // Faster retry
+
+  // Hide loading listener
+  if (window.electronAPI && window.electronAPI.onHideLoading) {
     window.electronAPI.onHideLoading(() => {
+      console.log('Received hide-loading — fading out');
       document.getElementById('loader').classList.add('fade-out');
     });
   }
