@@ -27,6 +27,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install bsdtar for Pacman target
+        run: sudo apt-get update && sudo apt-get install -y libarchive-tools
+
       - name: Build Linux Packages (AppImage + DEB + Pacman)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
