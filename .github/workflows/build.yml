@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write  # Needed to create releases and upload assets
+  contents: write
 
 jobs:
   build:
@@ -16,30 +16,33 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Helpful for generate_release_notes
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'  # Current LTS as of Dec 2025 (Node 18 is EOL)
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci  # Cleaner and faster than npm install in CI
+        run: npm ci
 
-      - name: Build AppImage (electron-builder)
+      - name: Build Linux Packages (AppImage + DEB + Pacman)
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Usually not needed, but kept if you use it elsewhere
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          npx electron-builder --linux appimage --x64
-          echo "AppImage files:"
-          ls -la dist/*.AppImage
+          npx electron-builder --linux appimage deb pacman --x64
+          echo "=== All built files in dist/ ==="
+          ls -la dist/
 
-      - name: Build DEB (Electron Forge)
+      - name: List built artifacts
         run: |
-          npx electron-forge make --platform linux --arch x64 --targets @electron-forge/maker-deb
+          echo "AppImage files:"
+          ls -la dist/*.AppImage || echo "No AppImage found"
           echo "DEB files:"
-          ls -la out/make/*.deb
+          ls -la dist/*.deb || echo "No DEB found"
+          echo "Pacman files:"
+          ls -la dist/*.pacman || echo "No Pacman found"
 
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2
@@ -52,4 +55,5 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             dist/*.AppImage
-            out/make/*.deb
+            dist/*.deb
+            dist/*.pacman
