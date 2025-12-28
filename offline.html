@@ -18,14 +18,12 @@
       text-align: center;
       transition: background 0.5s ease;
     }
-
     h2 {
       font-size: 2.2em;
       margin-bottom: 0.5em;
       color: #e74c3c;
       text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
     }
-
     p {
       font-size: 1.1em;
       margin-bottom: 2em;
@@ -33,7 +31,6 @@
       line-height: 1.5;
       color: #555;
     }
-
     button {
       padding: 0.7em 1.6em;
       font-size: 1em;
@@ -46,13 +43,11 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       transition: all 0.3s ease;
     }
-
     button:hover {
       background-color: #2980b9;
       transform: translateY(-2px);
       box-shadow: 0 6px 16px rgba(0,0,0,0.2);
     }
-
     button:active {
       transform: translateY(1px);
       box-shadow: 0 3px 10px rgba(0,0,0,0.15);
@@ -63,16 +58,11 @@
   <h2>System is Offline</h2>
   <p>Please check your internet connection and click Retry to try again.</p>
   <button id="retryBtn">Retry</button>
-
   <script>
-    window.electronAPI = {
-      retry: () => {
-        window.ipcRenderer.invoke('retry-offline');
-      }
-    };
-
     document.getElementById('retryBtn').addEventListener('click', () => {
-      window.electronAPI.retry();
+      if (window.electronAPI && window.electronAPI.retryOffline) {
+        window.electronAPI.retryOffline();
+      }
     });
   </script>
 </body>
