@@ -3,15 +3,6 @@ const path = require('path');
 const fs = require('fs');
 const windowStateKeeper = require('electron-window-state');
 
-// ---------- Helper for correct resource paths in packaged app ----------
-function getResourcePath(filename) {
-  if (app.isPackaged) {
-    return path.join(process.resourcesPath, filename);
-  } else {
-    return path.join(__dirname, filename);
-  }
-}
-
 // ---------- Wayland support ----------
 if (process.platform === 'linux') {
   app.commandLine.appendSwitch('enable-features', 'WaylandWindowDecorations');
@@ -98,7 +89,7 @@ function createLoadingWindow() {
     resizable: true,
     skipTaskbar: true,
     webPreferences: {
-      preload: getResourcePath('preload.js'),
+      preload: path.join(process.resourcesPath, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       webSecurity: true,
@@ -107,7 +98,7 @@ function createLoadingWindow() {
       webviewTag: false,
     },
   });
-  win.loadFile(getResourcePath('loading.html'));
+  win.loadFile(path.join(__dirname, 'loading.html'));
   return win;
 }
 
@@ -115,7 +106,7 @@ function createLoadingWindow() {
 function setupOfflineHandling(win) {
   ipcMain.handle('retry-offline', () => {
     win.loadURL('https://5mind.com/').catch(() => {
-      win.loadFile(getResourcePath('offline.html')).catch(() => {});
+      win.loadFile(path.join(__dirname, 'offline.html')).catch(() => {});
     });
   });
 }
@@ -126,7 +117,7 @@ function createMainWindow() {
     defaultWidth: 1200,
     defaultHeight: 800,
   });
-  const iconPath = getResourcePath('icon-256.png');
+  const iconPath = path.join(process.resourcesPath, 'icon-256.png');
   const iconOptions = fs.existsSync(iconPath) ? { icon: iconPath } : {};
   const win = new BrowserWindow({
     x: mainWindowState.x,
@@ -140,7 +131,7 @@ function createMainWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: getResourcePath('preload.js'),
+      preload: path.join(process.resourcesPath, 'preload.js'),
       webSecurity: true,
       allowRunningInsecureContent: false,
       experimentalFeatures: false,
@@ -169,14 +160,14 @@ function createMainWindow() {
   // Load main app
   win.loadURL('https://5mind.com/').catch((error) => {
     logError('Failed to load main URL', error.message);
-    win.loadFile(getResourcePath('offline.html')).catch(() => {});
+    win.loadFile(path.join(__dirname, 'offline.html')).catch(() => {});
   });
   win.setMenuBarVisibility(false);
   // Fallback on load failure
   win.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
     if (validatedURL.startsWith('https://5mind.com')) {
       logError(`Page load failed: ${validatedURL}`, `Code: ${errorCode}, Desc: ${errorDescription}`);
-      win.loadFile(getResourcePath('offline.html')).catch(() => {});
+      win.loadFile(path.join(__dirname, 'offline.html')).catch(() => {});
     }
   });
   // Renderer crash
@@ -188,10 +179,10 @@ function createMainWindow() {
 }
 
 // ---------- Show error.html ----------
-let mainWindow = null; // Declare globally for showErrorPage
+let mainWindow = null;
 function showErrorPage() {
   if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.loadFile(getResourcePath('error.html')).catch(() => {});
+    mainWindow.loadFile(path.join(__dirname, 'error.html')).catch(() => {});
   }
 }
 
@@ -217,7 +208,6 @@ app.on('ready', () => {
   ipcMain.on('loading-complete', () => {
     console.log('Loading screen ready – creating main window');
     mainWindow = createMainWindow();
-    // Timeout fallback in case ready-to-show never fires
     const showTimeout = setTimeout(() => {
       console.log('Timeout reached - showing window anyway');
       if (loadingWindow && !loadingWindow.isDestroyed()) {
@@ -230,18 +220,15 @@ app.on('ready', () => {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.show();
       }
-    }, 10000); // 10 second timeout
+    }, 10000);
     mainWindow.once('ready-to-show', () => {
       clearTimeout(showTimeout);
-      // Fade out loading
       if (loadingWindow && !loadingWindow.isDestroyed()) {
         try {
           loadingWindow.webContents.send('hide-loading');
         } catch (e) {}
       }
-      // Show main app
       mainWindow.show();
-      // Destroy splash
       setTimeout(() => {
         if (loadingWindow && !loadingWindow.isDestroyed()) {
           loadingWindow.destroy();
