@@ -32,8 +32,14 @@
     "executableName": "5mind-desktop",
     "asar": true,
     "extraResources": [
-      "./preload.js",
-      "./icon-256.png"
+      {
+        "from": "preload.js",
+        "to": "."
+      },
+      {
+        "from": "icon-256.png",
+        "to": "."
+      }
     ],
     "linux": {
       "target": [
@@ -43,10 +49,9 @@
       ],
       "category": "Network;InstantMessaging;Chat",
       "description": "5Mind Desktop Application.",
-      "icon": "./icon-256.png",
+      "icon": "icon-256.png",
       "maintainer": "EchoRavenX <echo@ravenx.com>"
     },
-    "fileAssociations": [],
     "directories": {
       "output": "dist"
     }
