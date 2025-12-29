@@ -158,9 +158,15 @@ function createMainWindow() {
   win.setMenuBarVisibility(false);
 
   win.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
-    if (validatedURL.startsWith('https://5mind.com')) {
-      logError(`Page load failed: ${validatedURL}`, `Code: ${errorCode}, Desc: ${errorDescription}`);
-      win.loadFile(path.join(__dirname, 'offline.html')).catch(() => {});
+    try {
+      const parsedUrl = new URL(validatedURL);
+      const origin = parsedUrl.origin;
+      if (origin === 'https://5mind.com' || origin.endsWith('.5mind.com')) {
+        logError(`Page load failed: ${validatedURL}`, `Code: ${errorCode}, Desc: ${errorDescription}`);
+        win.loadFile(path.join(__dirname, 'offline.html')).catch(() => {});
+      }
+    } catch {
+      // If the URL cannot be parsed, skip special handling.
     }
   });
 
