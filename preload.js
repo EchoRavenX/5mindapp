@@ -1,34 +1,71 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-/**
- * API exposed to the renderer (loading.html, error.html, main app)
- */
+// 1. logError function 
+const logErrorCode = `
+  const fs = require('fs');
+  const path = require('path');
+  const { app } = require('electron');
+  const os = require('os');
+
+  return function logError(msg, stack = '', errorLogs, logPath) {
+    const timestamp = new Date().toISOString();
+    const entry = { timestamp, msg, stack: stack || '' };
+    errorLogs.push(entry);
+    const logLine = '[${timestamp}] ${msg}\\n${stack || ''}\\n\\n';
+    console.error(logLine);
+    try {
+      fs.appendFileSync(logPath, logLine);
+    } catch (e) {}
+    return entry;
+  };
+`;
+
+// 2. saveWindowState function 
+const saveWindowStateCode = `
+  const fs = require('fs');
+  const path = require('path');
+  const { app } = require('electron');
+
+  return function saveWindowState(windowState) {
+    const STATE_FILE = path.join(app.getPath('userData'), 'window-state.json');
+    try {
+      fs.writeFileSync(STATE_FILE, JSON.stringify(windowState));
+    } catch (e) {}
+  };
+`;
+
+// 3. showErrorPage trigger 
+const showErrorPageCode = `
+  return function showErrorPage(mainWindow) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.loadFile(path.join(__dirname, 'error.html')).catch(() => {});
+    }
+  };
+`;
+
+// Expose unified API
 contextBridge.exposeInMainWorld('electronAPI', {
-  /**
-   * Tell the main process that the loading page is ready.
-   */
   notifyLoadingComplete: () => ipcRenderer.send('loading-complete'),
 
-  /**
-   * Listen for "hide-loading" signal from main process.
-   * Uses `once` so it only triggers one time (perfect for splash fade-out).
-   */
   onHideLoading: (callback) => {
     ipcRenderer.once('hide-loading', () => callback());
   },
 
-  /**
-   * Get full error logs + system info (for error.html)
-   */
+  // Multithreaded remote execution
+  runInWorker: async (funcName, ...args) => {
+    let code;
+    if (funcName === 'logError') code = logErrorCode;
+    if (funcName === 'saveWindowState') code = saveWindowStateCode;
+    if (funcName === 'showErrorPage') code = showErrorPageCode;
+
+    if (!code) return;
+
+    return ipcRenderer.invoke('run-worker-function', funcName, code, args);
+  },
+
   getErrorLogs: () => ipcRenderer.invoke('get-error-logs'),
 
-  /**
-   * Copy text to clipboard (for error.html "Copy All" button)
-   */
   copyToClipboard: (text) => navigator.clipboard.writeText(text),
 
-  /**
-   * Retry loading main app after offline
-   */
   retryOffline: () => ipcRenderer.invoke('retry-offline')
 });
