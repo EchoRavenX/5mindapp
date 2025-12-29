@@ -1,10 +1,10 @@
 const { contextBridge, ipcRenderer } = require('electron');
+
 const functions = {
   logError: `
     const fs = require('fs');
     const path = require('path');
     const { app } = require('electron');
-
     return function(msg, stack = '') {
       const timestamp = new Date().toISOString();
       const entry = { timestamp, msg, stack: stack || '' };
@@ -15,18 +15,15 @@ const functions = {
       return entry;
     };
   `,
-
   saveWindowState: `
     const fs = require('fs');
     const path = require('path');
     const { app } = require('electron');
-
     return function(state) {
       const STATE_FILE = path.join(app.getPath('userData'), 'window-state.json');
       try { fs.writeFileSync(STATE_FILE, JSON.stringify(state)); } catch(e) {}
     };
   `,
-
   showErrorPage: `
     const path = require('path');
     return function(mainWindow) {
@@ -44,10 +41,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   copyToClipboard: (text) => navigator.clipboard.writeText(text),
   retryOffline: () => ipcRenderer.invoke('retry-offline'),
 
-  // Multithreaded call
   runInWorker: async (name, ...args) => {
     const code = functions[name];
-    if (!code) throw new Error('Unknown function');
-    return ipcRenderer.invoke('worker-exec', code, args);
+    if (!code) throw new Error('Unknown function: ' + name);
+    return ipcRenderer.invoke('run-worker-function', name, code, args);
   }
+});
+
+ipcRenderer.on('run-save-state', (event, state) => {
+  window.electronAPI.runInWorker('saveWindowState', state);
 });
