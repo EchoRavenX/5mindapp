@@ -1,4 +1,4 @@
-name: Release flatpak Package
+name: Build Flatpak
 
 on:
   push:
@@ -10,43 +10,8 @@ permissions:
   contents: write
 
 jobs:
-  builder:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install bsdtar for Pacman
-        run: sudo apt-get update && sudo apt-get install -y libarchive-tools
-
-      - name: Build AppImage + DEB + Pacman + RPM
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          npx electron-builder --linux appimage deb pacman rpm --x64
-          ls -la dist/
-
-      - name: Upload builder artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-packages
-          path: dist/*
-
   flatpak:
     runs-on: ubuntu-latest
-    container: ghcr.io/electron-userland/electron-forge-flatpak:latest  # Has flatpak + flatpak-builder
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -62,41 +27,47 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Flatpak
-        run: npm run make-flatpak
+      - name: Install Flatpak and builder
+        run: |
+          sudo apt update
+          sudo apt install -y flatpak flatpak-builder elfutils
+
+      - name: Add Flathub remote and install SDK/runtime
+        run: |
+          flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install -y flathub org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.08
+
+      - name: Build Flatpak (inline config - Wayland only)
+        run: |
+          npx @electron-forge/cli make --platform linux --arch x64 --targets @electron-forge/maker-flatpak -- --config '{
+            "id": "com.5mind.desktop",
+            "runtime": "org.freedesktop.Platform",
+            "runtime-version": "25.08",
+            "sdk": "org.freedesktop.Sdk",
+            "command": "5mind-desktop",
+            "finish-args": [
+              "--share=network",
+              "--socket=wayland",
+              "--share=ipc",
+              "--device=dri",
+              "--socket=session-bus",
+              "--filesystem=xdg-documents",
+              "--filesystem=xdg-download",
+              "--persist=.5mind-desktop",
+              "--env=ELECTRON_ENABLE_LOGGING=1",
+              "--env=ELECTRON_OZONE_PLATFORM_HINT=wayland"
+            ],
+            "categories": ["Network", "InstantMessaging", "Chat"]
+          }'
 
       - name: List Flatpak output
         run: ls -la out/make/
 
-      - name: Upload Flatpak artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: flatpak-package
-          path: out/make/*.flatpak
-
-  release:
-    needs: [builder, flatpak]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Flatten and list files
-        run: |
-          mkdir release-assets
-          find artifacts -type f -exec mv {} release-assets/ \;
-          ls -la release-assets/
-
-      - name: Create Release and Upload All Assets
+      - name: Upload Flatpak to Release
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
+          files: out/make/*.flatpak
           tag_name: ${{ github.ref_name }}
-          name: 5Mind Desktop ${{ github.ref_name }}
+          name: 5Mind Desktop ${{ github.ref_name }} (Flatpak)
           generate_release_notes: true
-          draft: false
-          prerelease: false
-          fail_on_unmatched_files: true
-          files: |
-            release-assets/*
