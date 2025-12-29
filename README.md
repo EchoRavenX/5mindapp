@@ -12,8 +12,7 @@ A Linux desktop client for the 5mind website.
 - Native Linux integration
 
 ## Installation
-
-Provide step-by-step installation instructions tailored to your project's build process. For example:
+go to the releases tab and download the app note flatpak support is unoffical to install the flatpak verison please flow the Provide step-by-step installation instructions :
 
 ```bash
 # Clone the repository
@@ -21,9 +20,7 @@ git clone https://github.com/EchoRavenX/5mindapp.git
 
 # Navigate to the project directory
 cd 5mindapp
-and run ./package.sh for  AppImage.
-and ./packagedeb.sh for deb packages
-And for flatpaks building, thanks to Shonubot for helping me. 
+ flatpaks build, thanks to Shonubot for helping me. 
 you need to install
 flatpak install flathub org.freedesktop.Sdk.Extension.node22/x86_64/25.08
 flatpak install flathub org.electronjs.Electron2.BaseApp//25.08
