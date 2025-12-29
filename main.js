@@ -1,7 +1,6 @@
 const { app, BrowserWindow, ipcMain, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const windowStateKeeper = require('electron-window-state');
 
 // ---------- Wayland support ----------
 if (process.platform === 'linux') {
@@ -107,17 +106,37 @@ function createLoadingWindow() {
 
 // ---------- Create the REAL main window ----------
 function createMainWindow() {
-  const mainWindowState = windowStateKeeper({
-    defaultWidth: 1200,
-    defaultHeight: 800,
-  });
+  // Custom window state persistence (no external deps)
+  const STATE_FILE = path.join(app.getPath('userData'), 'window-state.json');
+
+  let savedState = {};
+  if (fs.existsSync(STATE_FILE)) {
+    try {
+      savedState = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    } catch (e) {
+      // Corrupted? Ignore and use defaults
+    }
+  }
+
+  const defaultState = {
+    width: 1200,
+    height: 800,
+    x: undefined,
+    y: undefined,
+    isMaximized: false,
+    isFullScreen: false
+  };
+
+  const windowState = { ...defaultState, ...savedState };
+
   const iconPath = path.join(process.resourcesPath, 'icon-256.png');
   const iconOptions = fs.existsSync(iconPath) ? { icon: iconPath } : {};
+
   const win = new BrowserWindow({
-    x: mainWindowState.x,
-    y: mainWindowState.y,
-    width: mainWindowState.width,
-    height: mainWindowState.height,
+    x: windowState.x,
+    y: windowState.y,
+    width: windowState.width,
+    height: windowState.height,
     backgroundColor: '#ffffff',
     resizable: true,
     show: false,
@@ -133,8 +152,44 @@ function createMainWindow() {
     },
     ...(process.platform === 'linux' ? { type: 'window', decorations: true } : {}),
   });
-  mainWindowState.manage(win);
 
+  // Restore maximized/fullscreen
+  if (windowState.isMaximized) win.maximize();
+  if (windowState.isFullScreen) win.setFullScreen(true);
+
+  // Save state on changes
+  const saveState = () => {
+    if (win.isDestroyed()) return;
+
+    const currentState = {
+      x: win.getBounds().x,
+      y: win.getBounds().y,
+      width: win.getBounds().width,
+      height: win.getBounds().height,
+      isMaximized: win.isMaximized(),
+      isFullScreen: win.isFullScreen()
+    };
+
+    // Only save position/size when not maximized/fullscreen
+    if (!win.isMaximized() && !win.isFullScreen()) {
+      Object.assign(windowState, currentState);
+    } else {
+      windowState.isMaximized = currentState.isMaximized;
+      windowState.isFullScreen = currentState.isFullScreen;
+    }
+
+    try {
+      fs.writeFileSync(STATE_FILE, JSON.stringify(windowState));
+    } catch (e) {
+      // Ignore write errors
+    }
+  };
+
+  win.on('resize', saveState);
+  win.on('move', saveState);
+  win.on('close', saveState);
+
+  // Navigation security
   win.webContents.on('will-navigate', (event, url) => {
     const parsedUrl = new URL(url);
     if (parsedUrl.origin !== 'https://5mind.com' && !parsedUrl.origin.endsWith('.5mind.com')) {
@@ -150,6 +205,7 @@ function createMainWindow() {
     return { action: 'allow' };
   });
 
+  // Load main app
   win.loadURL('https://5mind.com/').catch((error) => {
     logError('Failed to load main URL', error.message);
     win.loadFile(path.join(__dirname, 'offline.html')).catch(() => {});
@@ -157,6 +213,7 @@ function createMainWindow() {
 
   win.setMenuBarVisibility(false);
 
+  // Load failure fallback
   win.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
     try {
       const parsedUrl = new URL(validatedURL);
@@ -166,10 +223,11 @@ function createMainWindow() {
         win.loadFile(path.join(__dirname, 'offline.html')).catch(() => {});
       }
     } catch {
-      // If the URL cannot be parsed, skip special handling.
+      // Invalid URL — ignore
     }
   });
 
+  // Renderer crash
   win.webContents.on('crashed', () => {
     logError('Renderer process crashed');
     showErrorPage();
