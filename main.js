@@ -108,7 +108,6 @@ function createLoadingWindow() {
 function createMainWindow() {
   // Custom window state persistence (no external deps)
   const STATE_FILE = path.join(app.getPath('userData'), 'window-state.json');
-
   let savedState = {};
   if (fs.existsSync(STATE_FILE)) {
     try {
@@ -117,7 +116,6 @@ function createMainWindow() {
       // Corrupted? Ignore and use defaults
     }
   }
-
   const defaultState = {
     width: 1200,
     height: 800,
@@ -126,12 +124,9 @@ function createMainWindow() {
     isMaximized: false,
     isFullScreen: false
   };
-
   const windowState = { ...defaultState, ...savedState };
-
   const iconPath = path.join(process.resourcesPath, 'icon-256.png');
   const iconOptions = fs.existsSync(iconPath) ? { icon: iconPath } : {};
-
   const win = new BrowserWindow({
     x: windowState.x,
     y: windowState.y,
@@ -152,15 +147,12 @@ function createMainWindow() {
     },
     ...(process.platform === 'linux' ? { type: 'window', decorations: true } : {}),
   });
-
   // Restore maximized/fullscreen
   if (windowState.isMaximized) win.maximize();
   if (windowState.isFullScreen) win.setFullScreen(true);
-
   // Save state on changes
   const saveState = () => {
     if (win.isDestroyed()) return;
-
     const currentState = {
       x: win.getBounds().x,
       y: win.getBounds().y,
@@ -169,7 +161,6 @@ function createMainWindow() {
       isMaximized: win.isMaximized(),
       isFullScreen: win.isFullScreen()
     };
-
     // Only save position/size when not maximized/fullscreen
     if (!win.isMaximized() && !win.isFullScreen()) {
       Object.assign(windowState, currentState);
@@ -177,18 +168,15 @@ function createMainWindow() {
       windowState.isMaximized = currentState.isMaximized;
       windowState.isFullScreen = currentState.isFullScreen;
     }
-
     try {
       fs.writeFileSync(STATE_FILE, JSON.stringify(windowState));
     } catch (e) {
       // Ignore write errors
     }
   };
-
   win.on('resize', saveState);
   win.on('move', saveState);
   win.on('close', saveState);
-
   // Navigation security
   win.webContents.on('will-navigate', (event, url) => {
     const parsedUrl = new URL(url);
@@ -196,7 +184,6 @@ function createMainWindow() {
       event.preventDefault();
     }
   });
-
   win.webContents.setWindowOpenHandler(({ url }) => {
     const parsedUrl = new URL(url);
     if (parsedUrl.origin !== 'https://5mind.com' && !parsedUrl.origin.endsWith('.5mind.com')) {
@@ -204,15 +191,12 @@ function createMainWindow() {
     }
     return { action: 'allow' };
   });
-
   // Load main app
   win.loadURL('https://5mind.com/').catch((error) => {
     logError('Failed to load main URL', error.message);
     win.loadFile(path.join(__dirname, 'offline.html')).catch(() => {});
   });
-
   win.setMenuBarVisibility(false);
-
   // Load failure fallback
   win.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
     try {
@@ -226,13 +210,11 @@ function createMainWindow() {
       // Invalid URL — ignore
     }
   });
-
   // Renderer crash
   win.webContents.on('crashed', () => {
     logError('Renderer process crashed');
     showErrorPage();
   });
-
   return win;
 }
 
@@ -258,41 +240,65 @@ ipcMain.handle('get-error-logs', () => {
   };
 });
 
+// ---------- Helper to hide loading and destroy it ----------
+function hideAndDestroyLoading() {
+  if (loadingWindow && !loadingWindow.isDestroyed()) {
+    try {
+      loadingWindow.webContents.send('hide-loading');
+    } catch (e) {}
+    setTimeout(() => {
+      if (loadingWindow && !loadingWindow.isDestroyed()) {
+        loadingWindow.destroy();
+        loadingWindow = null;
+      }
+    }, 700);
+  }
+}
+
 // ---------- App lifecycle ----------
 let loadingWindow = null;
 app.on('ready', () => {
   console.log('Starting Electron v' + process.versions.electron + ' with Node.js v' + process.version);
+
+  // Prevent double creation
+  if (mainWindow || BrowserWindow.getAllWindows().length > 0) {
+    return;
+  }
+
   loadingWindow = createLoadingWindow();
-  ipcMain.on('loading-complete', () => {
+
+  ipcMain.removeAllListeners('loading-complete');
+  ipcMain.once('loading-complete', () => {
     console.log('Loading screen ready – creating main window');
+
+    if (mainWindow) return;  // Prevent duplicates
+
     mainWindow = createMainWindow();
+
     const showTimeout = setTimeout(() => {
-      console.log('Timeout reached - showing window anyway');
-      if (loadingWindow && !loadingWindow.isDestroyed()) {
-        try {
-          loadingWindow.webContents.send('hide-loading');
-        } catch (e) {}
-        loadingWindow.destroy();
-        loadingWindow = null;
-      }
+      console.log('Timeout reached - forcing show');
+      hideAndDestroyLoading();
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.show();
       }
     }, 10000);
+
     mainWindow.once('ready-to-show', () => {
       clearTimeout(showTimeout);
-      if (loadingWindow && !loadingWindow.isDestroyed()) {
-        try {
-          loadingWindow.webContents.send('hide-loading');
-        } catch (e) {}
+      hideAndDestroyLoading();
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.show();
       }
-      mainWindow.show();
+    });
+
+    // Extra safety for offline: force show if load fails
+    mainWindow.webContents.once('did-fail-load', () => {
       setTimeout(() => {
-        if (loadingWindow && !loadingWindow.isDestroyed()) {
-          loadingWindow.destroy();
-          loadingWindow = null;
+        hideAndDestroyLoading();
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.show();
         }
-      }, 700);
+      }, 500);
     });
   });
 });
