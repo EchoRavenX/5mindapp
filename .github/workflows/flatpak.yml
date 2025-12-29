@@ -1,4 +1,4 @@
-name: Release Linux Packages
+name: Release flatpak Package
 
 on:
   push:
