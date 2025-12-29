@@ -13,17 +13,17 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "make-deb": "electron-forge make --platform linux --arch x64 --targets=@electron-forge/maker-deb",
+    "make-flatpak": "electron-forge make --platform linux --arch x64 --targets=@electron-forge/maker-flatpak",
     "build:linux": "electron-builder --linux appimage deb pacman rpm --x64"
   },
-  "dependencies": {
-  },
+  "dependencies": {},
   "devDependencies": {
-    "@electron-forge/cli": "^7.9.0",           
-    "@electron-forge/maker-deb": "^7.10.2",    
-    "@electron-forge/maker-zip": "^7.10.2",    
-    "@electron-forge/maker-flatpak": "^7.10.2", 
-    "electron": "39.2.7",                      
-    "electron-builder": "^26.0.13"            
+    "@electron-forge/cli": "^7.9.0",
+    "@electron-forge/maker-deb": "^7.10.2",
+    "@electron-forge/maker-zip": "^7.10.2",
+    "@electron-forge/maker-flatpak": "^7.10.2",
+    "electron": "39.2.7",
+    "electron-builder": "^26.0.13"
   },
   "build": {
     "appId": "com.5mind.desktop",
