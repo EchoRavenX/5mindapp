@@ -23,14 +23,14 @@ app.whenReady().then(() => {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self' https://5mind.com https://*.5mind.com https://challenges.cloudflare.com data: blob:; " +
-          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://5mind.com https://*.5mind.com https://challenges.cloudflare.com blob:; " +
+          "default-src 'self' https://5mind.com https://*.5mind.com https://challenges.cloudflare.com https://5mind-assets.s3.us-east-2.amazonaws.com data: blob:; " +
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://5mind.com https://*.5mind.com https://challenges.cloudflare.com https://cdn.jsdelivr.net blob:; " +
           "worker-src 'self' blob: https://5mind.com https://*.5mind.com https://challenges.cloudflare.com; " +
           "child-src 'self' blob: https://challenges.cloudflare.com; " +
-          "style-src 'self' 'unsafe-inline' https://5mind.com https://*.5mind.com https://challenges.cloudflare.com; " +
-          "img-src 'self' data: blob: https: https://challenges.cloudflare.com; " +
-          "media-src 'self' blob: https:; " +
-          "connect-src 'self' https://5mind.com https://*.5mind.com wss://5mind.com wss://*.5mind.com https://challenges.cloudflare.com data: blob:; " +
+          "style-src 'self' 'unsafe-inline' https://5mind.com https://*.5mind.com https://challenges.cloudflare.com https://cdn.jsdelivr.net; " +
+          "img-src 'self' data: blob: https: https://challenges.cloudflare.com https://5mind-assets.s3.us-east-2.amazonaws.com; " +
+          "media-src 'self' blob: https: https://5mind-assets.s3.us-east-2.amazonaws.com; " +
+          "connect-src 'self' https://5mind.com https://*.5mind.com wss://5mind.com wss://*.5mind.com https://challenges.cloudflare.com https://5mind-assets.s3.us-east-2.amazonaws.com https://cdn.jsdelivr.net data: blob:; " +
           "object-src 'none'; " +
           "frame-src 'self' https://5mind.com https://*.5mind.com https://challenges.cloudflare.com; " +
           "base-uri 'self'; " +
@@ -49,9 +49,7 @@ app.whenReady().then(() => {
     const url = webContents.getURL();
     try {
       const parsed = new URL(url);
-      const isTrusted = parsed.origin === 'https://5mind.com' || 
-                       parsed.origin.endsWith('.5mind.com') || 
-                       parsed.origin === 'https://challenges.cloudflare.com';
+      const isTrusted = parsed.origin === 'https://5mind.com' || parsed.origin.endsWith('.5mind.com') || parsed.origin === 'https://challenges.cloudflare.com';
       if (!isTrusted) return callback(false);
       if (permission === 'media' || permission === 'notifications' || permission === 'fullscreen') {
         return callback(true);
