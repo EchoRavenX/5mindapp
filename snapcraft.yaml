@@ -50,7 +50,7 @@ parts:
     override-build: |
       mkdir -p $SNAPCRAFT_PART_INSTALL/meta/gui
       cp icon-256.png $SNAPCRAFT_PART_INSTALL/meta/gui/5mind-desktop.png
-      cat > $SNAPCRAFT_PART_INSTALL/meta/gui/5mind-desktop.desktop <<'EOF'
+      cat <<'EOF' > $SNAPCRAFT_PART_INSTALL/meta/gui/5mind-desktop.desktop
 [Desktop Entry]
 Name=5Mind Desktop
 Comment=5Mind Desktop Application
