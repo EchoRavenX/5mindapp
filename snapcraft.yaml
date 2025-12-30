@@ -35,7 +35,7 @@ parts:
       - libvulkan1
       - libnspr4
       - libnss3
-      - libxss1  # common for Electron cursor hiding / screensaver inhibit
+      - libxss1
     override-build: |
       npx electron-builder --linux dir --x64
       mkdir -p $SNAPCRAFT_PART_INSTALL/app
