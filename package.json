@@ -15,7 +15,7 @@
     "make-deb": "electron-forge make --platform linux --arch x64 --targets=@electron-forge/maker-deb",
     "make-flatpak": "electron-forge make --platform linux --arch x64 --targets=@electron-forge/maker-flatpak",
     "make-snap": "electron-forge make --platform linux --arch x64 --targets=@electron-forge/maker-snap",
-    "build:linux": "electron-builder --linux appimage deb pacman rpm snap --x64"
+    "build:linux": "electron-builder --linux appimage deb pacman rpm --x64"
   },
   "dependencies": {},
   "devDependencies": {
@@ -47,8 +47,7 @@
         "appimage",
         "deb",
         "pacman",
-        "rpm",
-        "snap"
+        "rpm"
       ],
       "category": "Network;InstantMessaging;Chat",
       "description": "5Mind Desktop Application.",
@@ -57,9 +56,6 @@
     },
     "directories": {
       "output": "dist"
-    },
-    "snap": {
-      "useTemplateApp": false
     }
   }
 }
