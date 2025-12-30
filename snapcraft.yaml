@@ -1,5 +1,5 @@
 name: 5mind-desktop
-version: '1.1.9' 
+version: '1.1.9'  
 summary: 5Mind Desktop Application
 description: 5Mind Desktop Application.
 base: core24
@@ -10,27 +10,29 @@ platforms:
   amd64:
 
 parts:
-  electron-app:
-    plugin: npm
-    source: .
-    npm-node-version: 20.17.0  
+  node:
+    plugin: nil
+    stage-snaps:
+      - node/20/stable  
     override-pull: |
       craftctl default
-      # Fix version in package.json if needed for release (optional)
-      # sed -i 's/"version": ".*"/"version": "${CRAFT_PROJECT_VERSION}"/' package.json
-    build-snaps:
-      - node/20/stable  
+
+  app-deps:
+    plugin: nil
+    source: .
+    after: [node]
+    override-build: |
+      npm ci  # uses the staged Node/npm
+
+  unpacked-app:
+    plugin: nil
+    source: .
+    after: [app-deps]
     stage-packages:
       - libgl1-mesa-dri
       - libglu1-mesa
       - mesa-vulkan-drivers
       - libvulkan1
-    after: [ ]  
-
-  unpacked-app:
-    plugin: nil
-    source: .
-    after: [electron-app]  
     override-build: |
       npx electron-builder --linux dir --x64
       mkdir -p $SNAPCRAFT_PART_INSTALL/app
