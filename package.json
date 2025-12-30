@@ -59,23 +59,7 @@
       "output": "dist"
     },
     "snap": {
-      "base": "core24",
-      "confinement": "strict",
-      "grade": "stable",
-      "stagePackages": [
-        "libgl1-mesa-dri",
-        "libglu1-mesa",
-        "mesa-vulkan-drivers",
-        "libvulkan1"
-      ],
-      "plugs": [
-        "desktop",
-        "wayland",
-        "opengl",
-        "browser-support",
-        "network",
-        "audio-playback"
-      ]
+      "useTemplateApp": false
     }
   }
 }
