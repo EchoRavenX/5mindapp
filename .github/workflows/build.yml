@@ -23,12 +23,6 @@ jobs:
         run: npm ci
       - name: Install bsdtar for Pacman target
         run: sudo apt-get update && sudo apt-get install -y libarchive-tools
-      - name: Install snapcraft
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y snapd
-          sudo snap install core
-          sudo snap install snapcraft --classic
       - name: Build Linux Packages (AppImage + DEB + Pacman + RPM)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -36,11 +30,13 @@ jobs:
           npx electron-builder --linux appimage deb pacman rpm --x64
           echo "=== Built files in dist/ ==="
           ls -la dist/
-      - name: Build Snap with snapcraft (core24)
+      - name: Build Snap (core24)
+        uses: snapcore/action-build@v1
+        id: snapcraft
+      - name: Move Snap to dist
         run: |
-          snapcraft pack --verbose
-          mv *.snap dist/
-          echo "=== Snap built in dist/ ==="
+          mv ${{ steps.snapcraft.outputs.snap }} dist/
+          echo "=== Snap in dist/ ==="
           ls -la dist/*.snap
       - name: List built artifacts
         run: |
@@ -66,7 +62,7 @@ jobs:
             - DEB (Ubuntu/Debian)
             - Pacman (Arch/Manjaro)
             - RPM (Fedora/openSUSE)
-            - Snap (Ubuntu/Snap-enabled distros - core24)
+            - Snap (Ubuntu/Snap-enabled distros - core24 modern)
             Auto-generated changelog below.
           generate_release_notes: true
           draft: false
