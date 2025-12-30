@@ -1,75 +1,76 @@
 name: Build 5Mind Desktop
-
 on:
-  push:
-    tags:
-      - 'v*'
-  workflow_dispatch:
+push:
+tags:
 
-permissions:
-  contents: write
-
-jobs:
-  build:
+    'v*'
+    workflow_dispatch:
+    permissions:
+    contents: write
+    jobs:
+    build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install bsdtar for Pacman target
-        run: sudo apt-get update && sudo apt-get install -y libarchive-tools
-
-      - name: Build Linux Packages (AppImage + DEB + Pacman + RPM)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          npx electron-builder --linux appimage deb pacman rpm --x64
-          echo "=== All built files in dist/ ==="
-          ls -la dist/
-
-      - name: List built artifacts
-        run: |
-          echo "AppImage:"
-          ls -la dist/*.AppImage || true
-          echo "DEB:"
-          ls -la dist/*.deb || true
-          echo "Pacman:"
-          ls -la dist/*.pacman || true
-          echo "RPM:"
-          ls -la dist/*.rpm || true
-
-      - name: Create Release and Upload Assets
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: 5Mind Desktop ${{ github.ref_name }}  
-          body: |
-            ### 5Mind Desktop ${{ github.ref_name }}
-
-            Latest Linux builds:
-            - AppImage (portable)
-            - DEB (Ubuntu/Debian)
-            - Pacman (Arch/Manjaro)
-            - RPM (Fedora/openSUSE)
-
-            Auto-generated changelog below.
-          generate_release_notes: true
-          draft: false
-          prerelease: false
-          fail_on_unmatched_files: true
-          files: |
-            dist/*.AppImage
-            dist/*.deb
-            dist/*.pacman
-            dist/*.rpm
+    name: Checkout code
+    uses: actions/checkout@v4
+    with:
+    fetch-depth: 0
+    name: Set up Node.js
+    uses: actions/setup-node@v4
+    with:
+    node-version: '20'
+    cache: 'npm'
+    name: Install dependencies
+    run: npm ci
+    name: Install bsdtar for Pacman target
+    run: sudo apt-get update && sudo apt-get install -y libarchive-tools
+    name: Install Snapcraft for Snap target
+    run: |
+    sudo apt-get update
+    sudo apt-get install -y snapd
+    sudo snap install core
+    sudo snap refresh core
+    sudo snap install snapcraft --classic
+    name: Build Linux Packages (AppImage + DEB + Pacman + RPM + Snap)
+    env:
+    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    run: |
+    npx electron-builder --linux appimage deb pacman rpm snap --x64
+    echo "=== All built files in dist/ ==="
+    ls -la dist/
+    name: List built artifacts
+    run: |
+    echo "AppImage:"
+    ls -la dist/.AppImage || true
+    echo "DEB:"
+    ls -la dist/.deb || true
+    echo "Pacman:"
+    ls -la dist/.pacman || true
+    echo "RPM:"
+    ls -la dist/.rpm || true
+    echo "Snap:"
+    ls -la dist/*.snap || true
+    name: Create Release and Upload Assets
+    uses: softprops/action-gh-release@v2
+    with:
+    tag_name: ${{ github.ref_name }}
+    name: 5Mind Desktop ${{ github.ref_name }}
+    body: |
+    5Mind Desktop ${{ github.ref_name }}
+    Latest Linux builds:
+        AppImage (portable)
+        DEB (Ubuntu/Debian)
+        Pacman (Arch/Manjaro)
+        RPM (Fedora/openSUSE)
+        Snap (Ubuntu/Snap Store)
+        Auto-generated changelog below.
+        generate_release_notes: true
+        draft: false
+        prerelease: false
+        fail_on_unmatched_files: true
+        files: |
+        dist/.AppImage
+        dist/.deb
+        dist/.pacman
+        dist/.rpm
+        dist/*.snap
