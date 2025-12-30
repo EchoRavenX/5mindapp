@@ -1,5 +1,5 @@
 name: 5mind-desktop
-version: '1.1.9'  
+version: '1.1.9'
 summary: 5Mind Desktop Application
 description: 5Mind Desktop Application.
 base: core24
@@ -13,7 +13,7 @@ parts:
   node:
     plugin: nil
     stage-snaps:
-      - node/20/stable  
+      - node/20/stable
     override-pull: |
       craftctl default
 
@@ -22,7 +22,7 @@ parts:
     source: .
     after: [node]
     override-build: |
-      npm ci  # uses the staged Node/npm
+      npm ci
 
   unpacked-app:
     plugin: nil
@@ -33,6 +33,9 @@ parts:
       - libglu1-mesa
       - mesa-vulkan-drivers
       - libvulkan1
+      - libnspr4
+      - libnss3
+      - libxss1  # common for Electron cursor hiding / screensaver inhibit
     override-build: |
       npx electron-builder --linux dir --x64
       mkdir -p $SNAPCRAFT_PART_INSTALL/app
@@ -40,9 +43,29 @@ parts:
       cp preload.js $SNAPCRAFT_PART_INSTALL/app/
       cp icon-256.png $SNAPCRAFT_PART_INSTALL/app/
 
+  desktop:
+    plugin: nil
+    source: .
+    after: [unpacked-app]
+    override-build: |
+      mkdir -p $SNAPCRAFT_PART_INSTALL/meta/gui
+      cp icon-256.png $SNAPCRAFT_PART_INSTALL/meta/gui/5mind-desktop.png
+      cat > $SNAPCRAFT_PART_INSTALL/meta/gui/5mind-desktop.desktop <<EOF
+[Desktop Entry]
+Name=5Mind Desktop
+Comment=5Mind Desktop Application
+Exec=5mind-desktop
+Icon=\${SNAP}/meta/gui/5mind-desktop.png
+Terminal=false
+Type=Application
+Categories=Network;InstantMessaging;Chat;
+StartupWMClass=5mind-desktop
+EOF
+
 apps:
   5mind-desktop:
     command: app/5mind-desktop
+    desktop: meta/gui/5mind-desktop.desktop
     plugs:
       - desktop
       - wayland
