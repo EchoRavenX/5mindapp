@@ -6,7 +6,6 @@ const { Worker } = require('worker_threads');
 // Global shared state
 const errorLogs = [];
 const logPath = path.join(app.getPath('userData'), 'error.log');
-
 let mainWindow = null;
 let loadingWindow = null;
 
@@ -24,12 +23,12 @@ app.whenReady().then(() => {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self' https://5mind.com https://*.5mind.com; " +
+          "default-src 'self' https://5mind.com https://*.5mind.com data: blob:; " +
           "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://5mind.com https://*.5mind.com; " +
           "style-src 'self' 'unsafe-inline' https://5mind.com https://*.5mind.com; " +
-          "img-src 'self' data: https:; " +
+          "img-src 'self' data: blob: https:; " +
           "media-src 'self' blob: https:; " +
-          "connect-src 'self' https://5mind.com https://*.5mind.com wss://5mind.com wss://*.5mind.com; " +
+          "connect-src 'self' https://5mind.com https://*.5mind.com wss://5mind.com wss://*.5mind.com data: blob:; " +
           "object-src 'none'; " +
           "frame-src 'self' https://5mind.com https://*.5mind.com; " +
           "base-uri 'self'; " +
@@ -66,13 +65,10 @@ ipcMain.handle('run-worker-function', async (event, funcName, codeStr, args) => 
       const fs = require('fs');
       const path = require('path');
       const { app, BrowserWindow } = require('electron');
-
       const { funcName, codeStr, args, errorLogs, logPath, mainWindowId } = workerData;
-
       try {
         const factory = eval(codeStr);
         const func = factory();
-
         let result = null;
         if (funcName === 'logError') {
           result = func(args[0], args[1], errorLogs, logPath);
@@ -84,13 +80,11 @@ ipcMain.handle('run-worker-function', async (event, funcName, codeStr, args) => 
             result = func(win);
           }
         }
-
         parentPort.postMessage({ success: true, result });
       } catch (err) {
         parentPort.postMessage({ success: false, error: err.message, stack: err.stack });
       }
     `;
-
     const worker = new Worker(workerCode, {
       eval: true,
       workerData: {
@@ -102,7 +96,6 @@ ipcMain.handle('run-worker-function', async (event, funcName, codeStr, args) => 
         mainWindowId: mainWindow ? mainWindow.id : null
       }
     });
-
     worker.on('message', (msg) => {
       worker.terminate();
       if (msg.success) {
@@ -112,7 +105,6 @@ ipcMain.handle('run-worker-function', async (event, funcName, codeStr, args) => 
         reject(new Error(msg.error || 'Worker error'));
       }
     });
-
     worker.on('error', (err) => {
       worker.terminate();
       reject(err);
@@ -176,10 +168,8 @@ function createMainWindow() {
   }
   const defaultState = { width: 1200, height: 800, x: undefined, y: undefined, isMaximized: false, isFullScreen: false };
   const windowState = { ...defaultState, ...savedState };
-
   const iconPath = path.join(process.resourcesPath, 'icon-256.png');
   const iconOptions = fs.existsSync(iconPath) ? { icon: iconPath } : {};
-
   const win = new BrowserWindow({
     x: windowState.x,
     y: windowState.y,
@@ -200,10 +190,8 @@ function createMainWindow() {
     },
     ...(process.platform === 'linux' ? { type: 'window', decorations: true } : {}),
   });
-
   if (windowState.isMaximized) win.maximize();
   if (windowState.isFullScreen) win.setFullScreen(true);
-
   // Save state — send to renderer to run in worker
   const saveState = () => {
     if (win.isDestroyed()) return;
@@ -219,11 +207,9 @@ function createMainWindow() {
     Object.assign(windowState, finalState);
     win.webContents.send('run-save-state', finalState);
   };
-
   win.on('resize', saveState);
   win.on('move', saveState);
   win.on('close', saveState);
-
   // Security
   win.webContents.on('will-navigate', (e, url) => {
     try {
@@ -238,15 +224,12 @@ function createMainWindow() {
     } catch {}
     return { action: 'allow' };
   });
-
   // Load main app
   win.loadURL('https://5mind.com/').catch(async (error) => {
     await win.webContents.executeJavaScript(`window.electronAPI.runInWorker('logError', 'Failed to load main URL', '${error.message.replace(/'/g, "\\'")}')`).catch(() => {});
     win.loadFile(path.join(__dirname, 'offline.html')).catch(() => {});
   });
-
   win.setMenuBarVisibility(false);
-
   // Load failure fallback
   win.webContents.on('did-fail-load', async (event, errorCode, errorDescription, validatedURL) => {
     try {
@@ -257,13 +240,11 @@ function createMainWindow() {
       }
     } catch {}
   });
-
   // Renderer crash
   win.webContents.on('crashed', async () => {
     await win.webContents.executeJavaScript(`window.electronAPI.runInWorker('logError', 'Renderer process crashed')`).catch(() => {});
     await win.webContents.executeJavaScript(`window.electronAPI.runInWorker('showErrorPage')`).catch(() => {});
   });
-
   return win;
 }
 
@@ -283,28 +264,22 @@ function hideAndDestroyLoading() {
 app.on('ready', () => {
   console.log('Starting Electron v' + process.versions.electron + ' with Node.js v' + process.version);
   if (mainWindow || BrowserWindow.getAllWindows().length > 0) return;
-
   loadingWindow = createLoadingWindow();
-
   ipcMain.removeAllListeners('loading-complete');
   ipcMain.once('loading-complete', () => {
     console.log('Loading screen ready – creating main window');
     if (mainWindow) return;
-
     mainWindow = createMainWindow();
-
     const showTimeout = setTimeout(() => {
       console.log('Timeout reached - forcing show');
       hideAndDestroyLoading();
       if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show();
     }, 10000);
-
     mainWindow.once('ready-to-show', () => {
       clearTimeout(showTimeout);
       hideAndDestroyLoading();
       if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show();
     });
-
     mainWindow.webContents.once('did-fail-load', () => {
       setTimeout(() => {
         hideAndDestroyLoading();
