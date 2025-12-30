@@ -23,16 +23,18 @@ app.whenReady().then(() => {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self' https://5mind.com https://*.5mind.com data: blob:; " +
-          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://5mind.com https://*.5mind.com; " +
-          "style-src 'self' 'unsafe-inline' https://5mind.com https://*.5mind.com; " +
-          "img-src 'self' data: blob: https:; " +
+          "default-src 'self' https://5mind.com https://*.5mind.com https://challenges.cloudflare.com data: blob:; " +
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://5mind.com https://*.5mind.com https://challenges.cloudflare.com blob:; " +
+          "worker-src 'self' blob: https://5mind.com https://*.5mind.com https://challenges.cloudflare.com; " +
+          "child-src 'self' blob: https://challenges.cloudflare.com; " +
+          "style-src 'self' 'unsafe-inline' https://5mind.com https://*.5mind.com https://challenges.cloudflare.com; " +
+          "img-src 'self' data: blob: https: https://challenges.cloudflare.com; " +
           "media-src 'self' blob: https:; " +
-          "connect-src 'self' https://5mind.com https://*.5mind.com wss://5mind.com wss://*.5mind.com data: blob:; " +
+          "connect-src 'self' https://5mind.com https://*.5mind.com wss://5mind.com wss://*.5mind.com https://challenges.cloudflare.com data: blob:; " +
           "object-src 'none'; " +
-          "frame-src 'self' https://5mind.com https://*.5mind.com; " +
+          "frame-src 'self' https://5mind.com https://*.5mind.com https://challenges.cloudflare.com; " +
           "base-uri 'self'; " +
-          "form-action 'self' https://5mind.com;"
+          "form-action 'self' https://5mind.com https://challenges.cloudflare.com;"
         ]
       }
     });
@@ -47,7 +49,9 @@ app.whenReady().then(() => {
     const url = webContents.getURL();
     try {
       const parsed = new URL(url);
-      const isTrusted = parsed.origin === 'https://5mind.com' || parsed.origin.endsWith('.5mind.com');
+      const isTrusted = parsed.origin === 'https://5mind.com' || 
+                       parsed.origin.endsWith('.5mind.com') || 
+                       parsed.origin === 'https://challenges.cloudflare.com';
       if (!isTrusted) return callback(false);
       if (permission === 'media' || permission === 'notifications' || permission === 'fullscreen') {
         return callback(true);
@@ -214,13 +218,13 @@ function createMainWindow() {
   win.webContents.on('will-navigate', (e, url) => {
     try {
       const origin = new URL(url).origin;
-      if (origin !== 'https://5mind.com' && !origin.endsWith('.5mind.com')) e.preventDefault();
+      if (origin !== 'https://5mind.com' && !origin.endsWith('.5mind.com') && origin !== 'https://challenges.cloudflare.com') e.preventDefault();
     } catch {}
   });
   win.webContents.setWindowOpenHandler(({ url }) => {
     try {
       const origin = new URL(url).origin;
-      if (origin !== 'https://5mind.com' && !origin.endsWith('.5mind.com')) return { action: 'deny' };
+      if (origin !== 'https://5mind.com' && !origin.endsWith('.5mind.com') && origin !== 'https://challenges.cloudflare.com') return { action: 'deny' };
     } catch {}
     return { action: 'allow' };
   });
