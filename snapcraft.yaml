@@ -1,5 +1,5 @@
 name: 5mind-desktop
-version: '1.1.9'  
+version: '1.1.9'  # overridden by git tag or whatever
 summary: 5Mind Desktop Application
 description: 5Mind Desktop Application.
 base: core24
@@ -20,12 +20,11 @@ parts:
       cp -rv dist/linux-unpacked/* $SNAPCRAFT_PART_INSTALL/app/
       cp preload.js $SNAPCRAFT_PART_INSTALL/app/
       cp icon-256.png $SNAPCRAFT_PART_INSTALL/app/
-
-stage-packages:
-  - libgl1-mesa-dri
-  - libglu1-mesa
-  - mesa-vulkan-drivers
-  - libvulkan1
+    stage-packages:
+      - libgl1-mesa-dri
+      - libglu1-mesa
+      - mesa-vulkan-drivers
+      - libvulkan1
 
 apps:
   5mind-desktop:
