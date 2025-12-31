@@ -14,7 +14,6 @@
     "make": "electron-forge make",
     "make-deb": "electron-forge make --platform linux --arch x64 --targets=@electron-forge/maker-deb",
     "make-flatpak": "electron-forge make --platform linux --arch x64 --targets=@electron-forge/maker-flatpak",
-    "make-snap": "electron-forge make --platform linux --arch x64 --targets=@electron-forge/maker-snap",
     "build:linux": "electron-builder --linux appimage deb pacman rpm --x64"
   },
   "dependencies": {},
@@ -23,7 +22,6 @@
     "@electron-forge/maker-deb": "^7.10.2",
     "@electron-forge/maker-zip": "^7.10.2",
     "@electron-forge/maker-flatpak": "^7.10.2",
-    "@electron-forge/maker-snap": "^7.10.2",
     "electron": "39.2.7",
     "electron-builder": "^26.4.0"
   },
