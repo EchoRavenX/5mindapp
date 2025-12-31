@@ -30,14 +30,6 @@ jobs:
           npx electron-builder --linux appimage deb pacman rpm --x64
           echo "=== Built files in dist/ ==="
           ls -la dist/
-      - name: Build Snap (core24)
-        uses: snapcore/action-build@v1
-        id: snapcraft
-      - name: Move Snap to dist
-        run: |
-          mv ${{ steps.snapcraft.outputs.snap }} dist/
-          echo "=== Snap in dist/ ==="
-          ls -la dist/*.snap
       - name: List built artifacts
         run: |
           echo "AppImage:"
@@ -48,8 +40,6 @@ jobs:
           ls -la dist/*.pacman || true
           echo "RPM:"
           ls -la dist/*.rpm || true
-          echo "Snap:"
-          ls -la dist/*.snap || true
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2
         with:
@@ -62,7 +52,6 @@ jobs:
             - DEB (Ubuntu/Debian)
             - Pacman (Arch/Manjaro)
             - RPM (Fedora/openSUSE)
-            - Snap (Ubuntu/Snap-enabled distros - core24 modern)
             Auto-generated changelog below.
           generate_release_notes: true
           draft: false
@@ -73,4 +62,3 @@ jobs:
             dist/*.deb
             dist/*.pacman
             dist/*.rpm
-            dist/*.snap
