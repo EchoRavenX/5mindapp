@@ -12,8 +12,12 @@
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
-    "make-deb": "electron-forge make --platform linux --arch x64 --targets=@electron-forge/maker-deb",
-    "make-flatpak": "electron-forge make --platform linux --arch x64 --targets=@electron-forge/maker-flatpak",
+    "make:win": "electron-forge make --platform win32 --arch x64",
+    "make:mac": "electron-forge make --platform darwin --arch x64 --arch arm64",
+    "make:linux": "electron-forge make --platform linux --arch x64",
+    "build": "electron-builder --win --mac --linux --x64 --arm64",
+    "build:win": "electron-builder --win --x64",
+    "build:mac": "electron-builder --mac --x64 --arm64",
     "build:linux": "electron-builder --linux appimage deb pacman rpm --x64"
   },
   "dependencies": {},
@@ -22,6 +26,8 @@
     "@electron-forge/maker-deb": "^7.10.2",
     "@electron-forge/maker-zip": "^7.10.2",
     "@electron-forge/maker-flatpak": "^7.10.2",
+    "@electron-forge/maker-dmg": "^7.10.2",
+    "@electron-forge/maker-squirrel": "^7.10.2",
     "electron": "39.2.7",
     "electron-builder": "^26.4.0"
   },
@@ -30,6 +36,7 @@
     "productName": "5Mind Desktop",
     "executableName": "5mind-desktop",
     "asar": true,
+
     "extraResources": [
       {
         "from": "preload.js",
@@ -40,6 +47,34 @@
         "to": "."
       }
     ],
+
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "icon-256.png"
+    },
+
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "icon.icns",
+      "category": "public.app-category.productivity",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
+
     "linux": {
       "target": [
         "appimage",
@@ -52,6 +87,7 @@
       "icon": "icon-256.png",
       "maintainer": "EchoRavenX <echo@ravenx.com>"
     },
+
     "directories": {
       "output": "dist"
     }
