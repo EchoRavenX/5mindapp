@@ -45,6 +45,7 @@ jobs:
       - name: Build application
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false  
         shell: bash
         run: |
           case "${{ matrix.platform }}" in
@@ -55,7 +56,13 @@ jobs:
               npx electron-builder --win --x64
               ;;
             mac)
-              npx electron-builder --mac --x64 --arm64
+              # Disable signing + hardenedRuntime + entitlements to avoid CI error
+              npx electron-builder --mac --x64 --arm64 \
+                -c.mac.identity=null \
+                -c.mac.hardenedRuntime=false \
+                -c.mac.entitlements=null \
+                -c.mac.entitlementsInherit=null \
+                -c.mac.gatekeeperAssess=false
               ;;
             *)
               echo "Unknown platform: ${{ matrix.platform }}"
@@ -90,7 +97,7 @@ jobs:
 
             Cross-platform release:
             - **Windows** — Installer (.exe)
-            - **macOS** — DMG + ZIP (x64 & arm64)
+            - **macOS** — DMG + ZIP (x64 & arm64) – unsigned builds
             - **Linux** — AppImage, DEB, Pacman, RPM
 
             Auto-generated changelog below.
