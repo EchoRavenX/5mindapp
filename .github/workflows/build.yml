@@ -38,7 +38,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Only needed for Linux pacman target
       - name: Install bsdtar (libarchive-tools) for Pacman
         if: matrix.platform == 'linux'
         run: sudo apt-get update && sudo apt-get install -y libarchive-tools
@@ -46,32 +45,41 @@ jobs:
       - name: Build application
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if [ "${{ matrix.platform }}" = "linux" ]; then
-            npx electron-builder --linux appimage deb pacman rpm --x64
-          elif [ "${{ matrix.platform }}" = "win" ]; then
-            npx electron-builder --win --x64
-          elif [ "${{ matrix.platform }}" = "mac" ]; then
-            npx electron-builder --mac --x64 --arm64
-          fi
-
-          echo "=== Built files in dist/ ==="
-          ls -la dist/
-
-      - name: List built artifacts
         shell: bash
         run: |
-          echo "Listing artifacts for ${{ matrix.platform }}:"
+          case "${{ matrix.platform }}" in
+            linux)
+              npx electron-builder --linux appimage deb pacman rpm --x64
+              ;;
+            win)
+              npx electron-builder --win --x64
+              ;;
+            mac)
+              npx electron-builder --mac --x64 --arm64
+              ;;
+            *)
+              echo "Unknown platform: ${{ matrix.platform }}"
+              exit 1
+              ;;
+          esac
+
+          echo "=== Built files in dist/ ==="
+          ls -la dist/ || true
+
+      - name: List built artifacts (debug)
+        shell: bash
+        run: |
+          echo "Artifacts for ${{ matrix.platform }}:"
           ls -la dist/* || true
 
-      - name: Upload artifacts (for debugging)
+      - name: Upload artifacts (debug & backup)
         uses: actions/upload-artifact@v4
         with:
           name: 5mind-desktop-${{ matrix.platform }}
           path: dist/*
           retention-days: 7
 
-      - name: Create Release & Upload Assets
+      - name: Create GitHub Release & Upload Assets
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
@@ -81,18 +89,17 @@ jobs:
             ### 5Mind Desktop ${{ github.ref_name }}
 
             Cross-platform release:
-            - **Windows** — Installer + Portable
-            - **macOS** — DMG + Universal ZIP (x64 & arm64)
+            - **Windows** — Installer (.exe)
+            - **macOS** — DMG + ZIP (x64 & arm64)
             - **Linux** — AppImage, DEB, Pacman, RPM
 
             Auto-generated changelog below.
           generate_release_notes: true
           draft: false
           prerelease: false
-          fail_on_unmatched_files: false   
+          fail_on_unmatched_files: false
           files: |
             dist/*.exe
-            dist/*.portable.exe
             dist/*.zip
             dist/*.dmg
             dist/*.AppImage
